@@ -1859,6 +1859,7 @@ proc genMagicExpr(p: BProc, e: CgNode, d: var TLoc, op: TMagic) =
   of mMove: genMove(p, e, d)
   of mDestroy: genDestroy(p, e)
   of mAccessEnv: unaryExpr(p, e, d, "$1.ClE_0")
+  of mAccessProc: unaryExpr(p, e, d, "$1.ClP_0")
   of mAccessTypeField: genAccessTypeField(p, e, d)
   of mSlice: genSlice(p, e, d)
   of mTrace: discard "no code to generate"

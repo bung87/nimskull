@@ -1587,6 +1587,15 @@ proc detectCapture(owner, top: PSym, n: PNode, marker: var IntSet): PNode =
     if top.isOwnedBy(s.owner): n
     else: nil
 
+  template traverse(n: PNode) =
+    # TODO: make exhaustive
+    for it in n.items:
+      result = detectCapture(owner, top, it, marker)
+      if result != nil:
+        # we've found something that requires capturing, don't continue and
+        # unwind
+        return
+
   case n.kind
   of nkTypeSection, nkTypeOfExpr, nkCommentStmt, nkIncludeStmt, nkImportStmt,
      nkImportExceptStmt, nkExportStmt, nkExportExceptStmt, nkFromStmt,
@@ -1635,14 +1644,13 @@ proc detectCapture(owner, top: PSym, n: PNode, marker: var IntSet): PNode =
     result = detectCapture(owner, top, n[namePos], marker)
   of nkNimNodeLit:
     discard "ignore node literals as they're data not code"
+  of nkCallKinds:
+    if n[0].kind == nkSym and n[0].sym.magic in {mAccessProc, mAccessEnv}:
+      return
+    else:
+      traverse(n)
   else:
-    # TODO: make exhaustive
-    for it in n.items:
-      result = detectCapture(owner, top, it, marker)
-      if result != nil:
-        # we've found something that requires capturing, don't continue and
-        # unwind
-        return
+    traverse(n)
 
 proc canCaptureFrom*(captor, target: PSym): bool =
   ## Tests if the `captor` routine is allowed to capture a local from `target`,
