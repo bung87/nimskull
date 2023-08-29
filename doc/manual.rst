@@ -5063,6 +5063,7 @@ type class           matches
 
 `enum`               any enumeration
 `proc`               any proc type
+`iterator`           any iterator type
 `ref`                any `ref` type
 `ptr`                any `ptr` type
 `var`                any `var` type
