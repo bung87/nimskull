@@ -1153,8 +1153,11 @@ proc parseProcExpr(p: var Parser; isExpr: bool; kind: ParsedNodeKind): ParsedNod
       exceptions = p.emptyNode)
   else:
     result = p.newNode(pnkProcTy, token = token)
-    if hasSignature:
-      result.add params
+    if hasSignature or pragmas.kind != pnkEmpty:
+      if hasSignature:
+        result.add(params)
+      else: # pragmas but no param list, implies typeclass with pragmas
+        result.add(p.emptyNode)
       if kind == pnkFuncDef:
         p.currTokenDiag(pdkFuncNotAllowed)
       result.add pragmas
