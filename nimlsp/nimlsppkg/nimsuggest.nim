@@ -199,9 +199,9 @@ proc runCmd*(nimsuggest: NimSuggest, cmd: IdeCmd, file,
           let info = loc.get()
           retval.add(Suggest(section: ideChk, filePath: toFullPath(conf,
                   info),
-            line: toLinenumber(info), column: toColumn(info),
+            line: toLinenumber(info), column: toColumn(info), 
             forth: $severity(conf, report)))
-        return doNothing
+        return doRaise
     else:
       conf.structuredReportHook = defaultStructuredReportHook
     executeNoHooks(conf.ideCmd, file, dirtyfile, line, col,
