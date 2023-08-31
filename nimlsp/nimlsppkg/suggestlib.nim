@@ -77,12 +77,12 @@ func nimSymDetails*(suggest: Suggest): string =
   else: suggest.forth
 
 
-template createFullCommand(command: untyped) {.dirty.} =
+template createFullCommand(command: untyped) =
   proc command*(nimsuggest: NimSuggest, file: string, dirtyfile = "",
             line: int, col: int): seq[Suggest] =
     nimsuggest.runCmd(`ide command`, AbsoluteFile file, AbsoluteFile dirtyfile, line, col)
 
-template createFileOnlyCommand(command: untyped) {.dirty.} =
+template createFileOnlyCommand(command: untyped) =
   proc command*(nimsuggest: NimSuggest, file: string, dirtyfile = ""): seq[Suggest] =
     nimsuggest.runCmd(`ide command`, AbsoluteFile file, AbsoluteFile dirtyfile, 0, 0)
 

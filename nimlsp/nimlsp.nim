@@ -36,19 +36,22 @@ var
   projectFiles = initTable[string, tuple[nimsuggest: NimSuggest, openFiles: OrderedSet[string]]]()
   openFiles = initTable[string, tuple[projectFile: string, fingerTable: seq[seq[tuple[u16pos, offset: int]]]]]()
 
-proc fileuri[T](p:T): string {.inline.} =
+proc fileuri[T](p:T): string =
   p["textDocument"]["uri"].getStr
 
-proc filestash[T](p:T): string {.inline.} =
+proc filePath[T](p:T): string =
+  p.fileuri[7..^1]
+
+proc filestash[T](p:T): string =
   storage / (hash(p.fileuri).toHex & ".nim" )
 
 proc rawLine[T](p:T): int =
   p["position"]["line"].getInt
 
-proc rawChar[T](p:T): int {.inline.} =
+proc rawChar[T](p:T): int =
   p["position"]["character"].getInt
 
-proc col[T](openFiles: typeof openFiles; p: T): int {.inline.} =
+proc col[T](openFiles: typeof openFiles; p: T): int =
   openFiles[p.fileuri].fingerTable[p.rawLine].utf16to8(p.rawChar)
 
 template textDocumentRequest(message, kind, name, body: untyped): untyped =
@@ -272,14 +275,14 @@ proc main(ins: Stream, outs: Stream) =
               debugLog "Running equivalent of: sug ", req.filePath, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              
-              let suggestions = getNimsuggest(req.fileuri).sug(req.filePath, dirtyfile = req.filestash,
-                req.rawLine + 1,
-                openFiles.col(req)
-              )
-              # debugLog "Found suggestions: ",
-              #   suggestions[0 ..< min(suggestions.len, 10)],
-              #   if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
+              var suggestions: seq[Suggest]
+              # let suggestions = getNimsuggest(req.fileuri).sug(req.filePath, dirtyfile = req.filestash,
+              #   req.rawLine + 1,
+              #   openFiles.col(req)
+              # )
+              debugLog "Found suggestions: ",
+                suggestions[0 ..< min(suggestions.len, 10)],
+                if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
               var
                 completionItems = newJarray()
                 seenLabels: CountTable[string]
@@ -320,10 +323,11 @@ proc main(ins: Stream, outs: Stream) =
               debugLog "Running equivalent of: def ", req.filePath, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              let suggestions = getNimsuggest(fileuri).def(req.filePath, dirtyfile = req.filestash,
-                req.rawLine + 1,
-                openFiles.col(req)
-              )
+              var suggestions: seq[Suggest]
+              # let suggestions = getNimsuggest(req.fileuri).def(req.filePath, dirtyfile = req.filestash,
+              #   req.rawLine + 1,
+              #   openFiles.col(req)
+              # )
               debugLog "Found suggestions: ",
                 suggestions[0 ..< min(suggestions.len, 10)],
                 if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
@@ -355,13 +359,14 @@ proc main(ins: Stream, outs: Stream) =
                 outs.respond(message, resp)
           of "textDocument/references":
             message.textDocumentRequest(ReferenceParams, req):
-              debugLog "Running equivalent of: use ", req.fileuri, ";", filestash, ":",
+              debugLog "Running equivalent of: use ", req.fileuri, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              let suggestions = getNimsuggest(fileuri).use(uriToPath(fileuri), dirtyfile = filestash,
-                req.rawLine + 1,
-                openFiles.col(req)
-              )
+              var suggestions: seq[Suggest]
+              # let suggestions = getNimsuggest(req.fileuri).use(req.filePath, dirtyfile = req.filestash,
+              #   req.rawLine + 1,
+              #   openFiles.col(req)
+              # )
               debugLog "Found suggestions: ",
                 suggestions[0 ..< min(suggestions.len, 10)],
                 if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
@@ -384,10 +389,11 @@ proc main(ins: Stream, outs: Stream) =
               debugLog "Running equivalent of: use ", req.fileuri, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              let suggestions = getNimsuggest(req.fileuri).use(req.filePath, dirtyfile = req.filestash,
-                req.rawLine + 1,
-                openFiles.col(req)
-              )
+              var suggestions: seq[Suggest]
+              # let suggestions = getNimsuggest(req.fileuri).use(req.filePath, dirtyfile = req.filestash,
+              #   req.rawLine + 1,
+              #   openFiles.col(req)
+              # )
               debugLog "Found suggestions: ",
                 suggestions[0..<min(suggestions.len, 10)],
                 if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
@@ -416,10 +422,11 @@ proc main(ins: Stream, outs: Stream) =
               debugLog "Running equivalent of: def ", req.fileuri, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              let declarations = getNimsuggest(fileuri).def(req.filePath, dirtyfile = req.filestash,
-                req.rawLine + 1,
-                openFiles.col(req)
-              )
+              var declarations: seq[Suggest]
+              # let declarations = getNimsuggest(req.fileuri).def(req.filePath, dirtyfile = req.filestash,
+              #   req.rawLine + 1,
+              #   openFiles.col(req)
+              # )
               debugLog "Found suggestions: ",
                 declarations[0..<min(declarations.len, 10)],
                 if declarations.len > 10: &" and {declarations.len-10} more" else: ""
@@ -441,10 +448,11 @@ proc main(ins: Stream, outs: Stream) =
             message.textDocumentRequest(DocumentSymbolParams, req):
               debugLog "Running equivalent of: outline ", req.fileuri,
                         ";", req.filestash
-              let syms = getNimsuggest(req.fileuri).outline(
-                req.fileuri,
-                dirtyfile = req.filestash
-              )
+              var syms: seq[Suggest]
+              # let syms = getNimsuggest(req.fileuri).outline(
+              #   req.fileuri,
+              #   dirtyfile = req.filestash
+              # )
               debugLog "Found outlines: ", syms[0..<min(syms.len, 10)],
                         if syms.len > 10: &" and {syms.len-10} more" else: ""
               var resp: JsonNode
@@ -475,7 +483,7 @@ proc main(ins: Stream, outs: Stream) =
               debugLog "Running equivalent of: con ", req.filePath, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              let suggestions = getNimsuggest(req.fileuri).con(req.filePath, dirtyfile = req.filestash, req.rawLine + 1, rawChar)
+              let suggestions = getNimsuggest(req.fileuri).con(req.filePath, dirtyfile = req.filestash, req.rawLine + 1, req.rawChar)
               var signatures = newSeq[SignatureInformation]()
               for suggestion in suggestions:
                 var label = suggestion.qualifiedPath.join(".")
