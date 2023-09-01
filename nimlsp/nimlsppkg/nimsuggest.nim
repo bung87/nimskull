@@ -73,7 +73,7 @@ proc initNimSuggest*(project: string, nimPath: string = ""): NimSuggest =
     conf.setErrorMaxHighMaybe
     # do not print errors, but log them
     conf.writelnHook = proc(conf: ConfigRef, msg: string, flags: MsgFlags) =
-      discard
+      stderr.writeLine msg
     conf.structuredReportHook = defaultStructuredReportHook
 
     # compile the project before showing any input so that we already
@@ -84,7 +84,7 @@ proc initNimSuggest*(project: string, nimPath: string = ""): NimSuggest =
   proc mockCmdLine(pass: TCmdLinePass, argv: openArray[string];
         conf: ConfigRef) =
     conf.suggestVersion = 0
-    conf.writeHook = proc(conf: ConfigRef, s: string, flags: MsgFlags) = discard
+    conf.writeHook = proc(conf: ConfigRef, s: string, flags: MsgFlags) = stderr.write s
     
     let a = unixToNativePath(project)
     if dirExists(a) and not fileExists(a.addFileExt("nim")):
@@ -178,12 +178,12 @@ proc runCmd*(nimsuggest: NimSuggest, cmd: IdeCmd, file,
   var retval: seq[Suggest] = @[]
   let conf = nimsuggest.graph.config
   conf.ideCmd = cmd
-  # conf.writelnHook = proc(conf: ConfigRef, msg: string, flags: MsgFlags) =
-  #   retval.add(Suggest(section: ideMsg, doc: msg))
+  conf.writelnHook = proc(conf: ConfigRef, msg: string, flags: MsgFlags) =
+    retval.add(Suggest(section: ideMsg, doc: msg))
   conf.suggestionResultHook = proc (s: Suggest) =
     retval.add(s)
-  conf.writelnHook = proc(conf: ConfigRef, s: string, flags: MsgFlags) =
-    stderr.write s & "\n"
+  # conf.writelnHook = proc(conf: ConfigRef, s: string, flags: MsgFlags) =
+  #   stderr.write s & "\n"
   if conf.ideCmd == ideKnown:
     retval.add(Suggest(section: ideKnown, quality: ord(fileInfoKnown(conf, file))))
   elif conf.ideCmd == ideProject:

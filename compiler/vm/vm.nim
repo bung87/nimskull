@@ -2500,7 +2500,9 @@ proc rawExecute(c: var TCtx, pc: var int): YieldReason =
       else:
         let L = arrayLen(x)
         for i in 0..<L:
-          u.add(deref(getItemHandle(x, i, c.allocator)).nodeVal)
+          var c = deref(getItemHandle(x, i, c.allocator)).nodeVal
+          if c == nil: c = newNode(nkNilLit)
+          u.add(c)
       regs[ra].nimNode = u
 
     of opcNKind:

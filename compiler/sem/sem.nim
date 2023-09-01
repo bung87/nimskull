@@ -430,11 +430,13 @@ proc newSymGNode*(kind: TSymKind, n: PNode, c: PContext): PNode =
       if n.sym.kind in {kind, skTemp}:
         n.sym.owner = currOwner # xxx: modifying the sym owner is suss
         n
-      else:
+      elif kind in skProc..skTemplate:
         let recoverySym = copySym(n.sym, nextSymId c.idgen)
         recoverySym.transitionRoutineSymKind(kind)
         recoverySym.owner = currOwner
         c.config.makeError(n, recoverySym, ExpectedKindMismatch)
+      else:
+        n
   of nkIdent, nkAccQuoted:
     # xxx: sym choices qualify here, but shouldn't those be errors in
     #      definition positions?
