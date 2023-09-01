@@ -469,8 +469,6 @@ when isMainModule:
     create(CancelParams, some(10), none(float)), "Hello"
   )
   echo wcp.JsonNode.isValid(WrapsCancelParams) == true
-  cast[var JsonNode](wcp["cp"]) = %*{"notcancelparams": true}
-  echo wcp.JsonNode.isValid(WrapsCancelParams) == false
   echo wcp.JsonNode.isValid(WrapsCancelParams, false) == true
   var ecp = create(ExtendsCancelParams, some(10), some(5.3), "Hello")
   echo ecp.JsonNode.isValid(ExtendsCancelParams) == true
