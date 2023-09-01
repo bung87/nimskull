@@ -133,14 +133,13 @@ runnableExamples:
 
 An expression like `&"{key} is {value:arg} {{z}}"` is transformed into:
 
-  ```nim
+.. code-block:: nim
   var temp = newStringOfCap(educatedCapGuess)
   temp.formatValue(key, "")
   temp.add(" is ")
   temp.formatValue(value, arg)
   temp.add(" {z}")
   temp
-  ```
 
 Parts of the string that are enclosed in the curly braces are interpreted
 as Nim code. To escape a `{` or `}`, double it.
@@ -172,24 +171,24 @@ For strings and numeric types the optional argument is a so-called
 
 # Standard format specifiers for strings, integers and floats
 
-The general form of a standard format specifier is:
+The general form of a standard format specifier is::
 
-    [[fill]align][sign][#][0][minimumwidth][.precision][type]
+  [[fill]align][sign][#][0][minimumwidth][.precision][type]
 
 The square brackets `[]` indicate an optional element.
 
 The optional `align` flag can be one of the following:
 
 `<`
-:   Forces the field to be left-aligned within the available
+    Forces the field to be left-aligned within the available
     space. (This is the default for strings.)
 
 `>`
-:   Forces the field to be right-aligned within the available space.
+    Forces the field to be right-aligned within the available space.
     (This is the default for numbers.)
 
 `^`
-:   Forces the field to be centered within the available space.
+    Forces the field to be centered within the available space.
 
 Note that unless a minimum field width is defined, the field width
 will always be the same size as the data to fill it, so that the alignment
@@ -273,14 +272,13 @@ The available floating point presentation types are:
 Because of the well defined order how templates and macros are
 expanded, strformat cannot expand template arguments:
 
-  ```nim
+.. code-block:: nim
   template myTemplate(arg: untyped): untyped =
     echo "arg is: ", arg
     echo &"--- {arg} ---"
 
   let x = "abc"
   myTemplate(x)
-  ```
 
 First the template `myTemplate` is expanded, where every identifier
 `arg` is substituted with its argument. The `arg` inside the
@@ -291,13 +289,12 @@ identifier that cannot be resolved anymore.
 
 The workaround for this is to bind the template argument to a new local variable.
 
-  ```nim
+.. code-block:: nim
   template myTemplate(arg: untyped): untyped =
     block:
       let arg1 {.inject.} = arg
       echo "arg is: ", arg1
       echo &"--- {arg1} ---"
-  ```
 
 The use of `{.inject.}` here is necessary again because of template
 expansion order and hygienic templates. But since we generally want to
@@ -316,12 +313,8 @@ help with readability, since there is only so much you can cram into
 single letter DSLs.
 ]##
 
-import macros, parseutils, unicode
-import strutils except format
-
-when defined(nimPreviewSlimSystem):
-  import std/assertions
-
+import std/[macros, parseutils, unicode]
+import std/strutils except format
 
 proc mkDigit(v: int, typ: char): string {.inline.} =
   assert(v < 26)
@@ -426,9 +419,9 @@ proc formatInt(n: SomeNumber; radix: int; spec: StandardFormatSpecifier): string
 proc parseStandardFormatSpecifier*(s: string; start = 0;
                                    ignoreUnknownSuffix = false): StandardFormatSpecifier =
   ## An exported helper proc that parses the "standard format specifiers",
-  ## as specified by the grammar:
+  ## as specified by the grammar::
   ##
-  ##     [[fill]align][sign][#][0][minimumwidth][.precision][type]
+  ##   [[fill]align][sign][#][0][minimumwidth][.precision][type]
   ##
   ## This is only of interest if you want to write a custom `format` proc that
   ## should support the standard format specifiers. If `ignoreUnknownSuffix` is true,
@@ -580,8 +573,7 @@ template formatValue(result: var string; value: char; specifier: string) =
 template formatValue(result: var string; value: cstring; specifier: string) =
   result.add value
 
-proc strformatImpl(f: string; openChar, closeChar: char,
-                   lineInfoNode: NimNode = nil): NimNode =
+proc strformatImpl(f: string; openChar, closeChar: char): NimNode =
   template missingCloseChar =
     error("invalid format string: missing closing character '" & closeChar & "'")
 
@@ -589,7 +581,7 @@ proc strformatImpl(f: string; openChar, closeChar: char,
     error "openChar and closeChar must not be ':'"
   var i = 0
   let res = genSym(nskVar, "fmtRes")
-  result = newNimNode(nnkStmtListExpr, lineInfoNode)
+  result = newNimNode(nnkStmtListExpr)
   # XXX: https://github.com/nim-lang/Nim/issues/8405
   # When compiling with -d:useNimRtl, certain procs such as `count` from the strutils
   # module are not accessible at compile-time:
@@ -648,7 +640,6 @@ proc strformatImpl(f: string; openChar, closeChar: char,
           x = parseExpr(subexpr)
         except ValueError as e:
           error("could not parse `$#` in `$#`.\n$#" % [subexpr, f, e.msg])
-        x.copyLineInfo(lineInfoNode)
         let formatSym = bindSym("formatValue", brOpen)
         var options = ""
         if f[i] == ':':
@@ -666,7 +657,7 @@ proc strformatImpl(f: string; openChar, closeChar: char,
         strlit.add closeChar
         inc i, 2
       else:
-        raiseAssert "invalid format string: '$1' instead of '$1$1'" % $closeChar
+        doAssert false, "invalid format string: '$1' instead of '$1$1'" % $closeChar
         inc i
     else:
       strlit.add f[i]
@@ -674,22 +665,10 @@ proc strformatImpl(f: string; openChar, closeChar: char,
   if strlit.len > 0:
     result.add newCall(bindSym"add", res, newLit(strlit))
   result.add res
-  # workaround for #20381
-  var blockExpr = newNimNode(nnkBlockExpr, lineInfoNode)
-  blockExpr.add(newEmptyNode())
-  blockExpr.add(result)
-  result = blockExpr
   when defined(debugFmtDsl):
     echo repr result
 
-macro fmt(pattern: static string; openChar: static char, closeChar: static char, lineInfoNode: untyped): string =
-  ## version of `fmt` with dummy untyped param for line info
-  strformatImpl(pattern, openChar, closeChar, lineInfoNode)
-
-when not defined(nimHasCallsitePragma):
-  {.pragma: callsite.}
-
-template fmt*(pattern: static string; openChar: static char, closeChar: static char): string {.callsite.} =
+macro fmt*(pattern: static string; openChar: static char, closeChar: static char): string =
   ## Interpolates `pattern` using symbols in scope.
   runnableExamples:
     let x = 7
@@ -706,13 +685,13 @@ template fmt*(pattern: static string; openChar: static char, closeChar: static c
     assert "<x>".fmt('<', '>') == "7"
     assert "<<<x>>>".fmt('<', '>') == "<7>"
     assert "`x`".fmt('`', '`') == "7"
-  fmt(pattern, openChar, closeChar, dummyForLineInfo)
+  strformatImpl(pattern, openChar, closeChar)
 
-template fmt*(pattern: static string): untyped {.callsite.} =
+template fmt*(pattern: static string): untyped =
   ## Alias for `fmt(pattern, '{', '}')`.
-  fmt(pattern, '{', '}', dummyForLineInfo)
+  fmt(pattern, '{', '}')
 
-template `&`*(pattern: string{lit}): string {.callsite.} =
+macro `&`*(pattern: string{lit}): string =
   ## `&pattern` is the same as `pattern.fmt`.
   ## For a specification of the `&` macro, see the module level documentation.
   # pending bug #18275, bug #18278, use `pattern: static string`
@@ -722,6 +701,6 @@ template `&`*(pattern: string{lit}): string {.callsite.} =
   runnableExamples:
     let x = 7
     assert &"{x}\n" == "7\n" # regular string literal
-    assert &"{x}\n" == "{x}\n".fmt # `fmt` can be used instead
-    assert &"{x}\n" != fmt"{x}\n" # see `fmt` docs, this would use a raw string literal
-  fmt(pattern, '{', '}', dummyForLineInfo)
+    assert &"{x}\n" == "7\n".fmt # `fmt` can be used instead
+    assert &"{x}\n" != fmt"7\n" # see `fmt` docs, this would use a raw string literal
+  strformatImpl(pattern.strVal, '{', '}')
