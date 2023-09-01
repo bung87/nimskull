@@ -55,8 +55,8 @@ proc col[T](openFiles: typeof openFiles; p: T): int =
   openFiles[p.fileuri].fingerTable[p.rawLine].utf16to8(p.rawChar)
 
 template textDocumentRequest(message, kind, name, body: untyped): untyped =
-  if message["params"].isSome:
-    let p = message["params"].unsafeGet
+  if message.hasKey("params"):
+    let p = message["params"]
     if p.isValid(kind, allowExtra = true):
       var name = kind(p)
       body
@@ -64,14 +64,14 @@ template textDocumentRequest(message, kind, name, body: untyped): untyped =
       debugLog("Unable to parse data as ", kind)
 
 template textDocumentNotification(message, kind, name, body: untyped): untyped =
-  if message["params"].isSome:
-    var p = message["params"].unsafeGet
+  if message.hasKey("params"):
+    var p = message["params"]
     if p.isValid(kind, allowExtra = true):
       if "languageId" notin name["textDocument"] or name["textDocument"]["languageId"].getStr == "nim":
         var name = kind(p)
         body
       else:
-        debugLog("Unable to parse data as " & $kind)
+        debugLog("Unable to parse data as ", kind)
 
 proc pathToUri(path: string): string =
   # This is a modified copy of encodeUrl in the uri module. This doesn't encode
@@ -121,11 +121,11 @@ proc parseId(node: JsonNode): int =
   else:
     raise newException(MalformedFrame, "Invalid id node: " & repr(node))
 
-proc respond(outs: Stream, request: RequestMessage, data: JsonNode) =
+proc respond(outs: Stream, request: JsonNode, data: JsonNode) =
   let resp = create(ResponseMessage, "2.0", parseId(request["id"]), some(data), none(ResponseError)).JsonNode
   outs.sendJson resp
 
-proc error(outs: Stream, request: RequestMessage, errorCode: ErrorCode, message: string, data: JsonNode) =
+proc error(outs: Stream, request: JsonNode, errorCode: ErrorCode, message: string, data: JsonNode) =
   let resp = create(ResponseMessage, "2.0", parseId(request["id"]), none(JsonNode), some(create(ResponseError, ord(errorCode), message, data))).JsonNode
   outs.sendJson resp
 
@@ -220,7 +220,7 @@ proc main(ins: Stream, outs: Stream) =
       let frame = ins.readFrame
       debugLog "Got frame"
       let message = frame.parseJson
-      isValid(message, RequestMessage):
+      if isValid(message, RequestMessage):
         debugLog "Got valid Request message of type ", message["method"].getStr
         if not initialized and message["method"].getStr != "initialize":
           outs.error(message, ServerNotInitialized, "Unable to accept requests before being initialized", newJNull())
@@ -342,8 +342,8 @@ proc main(ins: Stream, outs: Stream) =
                 let
                   rangeopt =
                     some(create(Range,
-                      create(Position, rawLine, rawChar),
-                      create(Position, rawLine, rawChar + suggestions[0].qualifiedPath[^1].len)
+                      create(Position, req.rawLine, req.rawChar),
+                      create(Position, req.rawLine, req.rawChar + suggestions[0].qualifiedPath[^1].len)
                     ))
                   markedString = create(MarkedStringOption, "nim", label)
                 if suggestions[0].doc != "":
@@ -410,7 +410,7 @@ proc main(ins: Stream, outs: Stream) =
                       create(Position, suggestion.line-1, suggestion.column),
                       create(Position, suggestion.line-1, suggestion.column + suggestion.qualifiedPath[^1].len)
                     ),
-                    renameRequest["newName"].getStr
+                    req["newName"].getStr
                   ).JsonNode
                 resp = create(WorkspaceEdit,
                   some(textEdits),
@@ -418,7 +418,7 @@ proc main(ins: Stream, outs: Stream) =
                 ).JsonNode
                 outs.respond(message, resp)
           of "textDocument/definition":
-            message.textDocumentRequest(TextDocumentPositionParams, definitionRequest):
+            message.textDocumentRequest(TextDocumentPositionParams, req):
               debugLog "Running equivalent of: def ", req.fileuri, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
@@ -505,7 +505,7 @@ proc main(ins: Stream, outs: Stream) =
             debugLog "Unknown request"
             outs.error(message, InvalidRequest, "Unknown request: " & frame, newJObject())
         continue
-      isValid(message, NotificationMessage):
+      elif isValid(message, NotificationMessage):
         debugLog "Got valid Notification message of type ", message["method"].getStr
         if not initialized and message["method"].getStr != "exit":
           continue
@@ -525,7 +525,6 @@ proc main(ins: Stream, outs: Stream) =
                 projectFile = getProjectFile(uriToPath(req.fileuri))
               debugLog "New document opened for URI: ", req.fileuri, " saving to ", req.filestash
               openFiles[req.fileuri] = (
-                #nimsuggest: initNimsuggest(uriToPath(fileuri)),
                 projectFile: projectFile,
                 fingerTable: @[]
               )
@@ -563,18 +562,18 @@ proc main(ins: Stream, outs: Stream) =
                           getNimsuggest(req.fileuri).stopNimsuggest()
               openFiles.del(req.fileuri)
           of "textDocument/didSave":
-            message.textDocumentNotification(DidSaveTextDocumentParams, textDoc):
-              if textDoc["text"].isSome:
+            message.textDocumentNotification(DidSaveTextDocumentParams, req):
+              if req["text"].isSome:
                 let file = open(filestash, fmWrite)
                 debugLog "Got document save for URI: ", req.fileuri, " saving to ", req.filestash
                 openFiles[req.fileuri].fingerTable = @[]
-                for line in textDoc["text"].unsafeGet.getStr.splitLines:
+                for line in req["text"].unsafeGet.getStr.splitLines:
                   openFiles[req.fileuri].fingerTable.add line.createUTFMapping()
                   file.writeLine line
                 file.close()
               debugLog "fileuri: ", req.fileuri, ", project file: ", openFiles[req.fileuri].projectFile, ", dirtyfile: ", filestash
-
-              let diagnostics = getNimsuggest(req.fileuri).chk(req.filePath, dirtyfile = req.filestash)
+              var diagnostics: seq[Suggest]
+              # let diagnostics = getNimsuggest(req.fileuri).chk(req.filePath, dirtyfile = req.filestash)
               debugLog "Got diagnostics: ",
                 diagnostics[0..<min(diagnostics.len, 10)],
                 if diagnostics.len > 10: &" and {diagnostics.len-10} more" else: ""
@@ -583,7 +582,7 @@ proc main(ins: Stream, outs: Stream) =
                 if diagnostic.line == 0:
                   continue
 
-                if diagnostic.filePath != uriToPath(req.fileuri):
+                if diagnostic.filePath != req.filePath:
                   continue
                 # Try to guess the size of the identifier
                 let
@@ -606,9 +605,11 @@ proc main(ins: Stream, outs: Stream) =
                 )
 
               # Invoke chk on all open files.
-              let projectFile = openFiles[req.fileuri].projectFile
+              # let projectFile = openFiles[req.fileuri].projectFile
+              var projectFile: string
               for f in projectFiles[projectFile].openFiles.items:
-                let diagnostics = getNimsuggest(f).chk(req.filePath, dirtyfile = req.filestash)
+                var diagnostics: seq[Suggest]
+                # let diagnostics = getNimsuggest(f).chk(req.filePath, dirtyfile = req.filestash)
                 debugLog "Got diagnostics: ",
                   diagnostics[0 ..< min(diagnostics.len, 10)],
                   if diagnostics.len > 10: &" and {diagnostics.len-10} more" else: ""
