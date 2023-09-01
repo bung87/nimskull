@@ -99,10 +99,9 @@ proc `mod`*(nimsuggest: NimSuggest, file: string, dirtyfile = ""): seq[Suggest] 
   nimsuggest.runCmd(ideMod, AbsoluteFile file, AbsoluteFile dirtyfile, 0, 0)
 
 when isMainModule:
-  var graph = initNimSuggest("/home/peter/div/nimlsp/suglibtest.nim",
-                             nimPath = "/home/peter/div/Nim")
-  var suggestions = graph.sug("/home/peter/div/nimlsp/suglibtest.nim",
-                              "/home/peter/div/nimlsp/suglibtest.nim", 7, 2)
+  import os
+  var graph = initNimSuggest(currentSourcePath, nimPath = currentSourcePath.parentDir.parentDir.parentDir)
+  var suggestions = graph.sug(currentSourcePath, currentSourcePath, 86, 16)
   echo "Got ", suggestions.len, " suggestions"
   for suggestion in suggestions:
     echo suggestion
