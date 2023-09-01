@@ -510,7 +510,7 @@ proc main(ins: Stream, outs: Stream) =
             else:
               quit 1
           of "initialized":
-            debugLog "Properly initialized"
+            discard
           of "textDocument/didOpen":
             textDocumentNotification(message, DidOpenTextDocumentParams, req):
               let
@@ -545,7 +545,7 @@ proc main(ins: Stream, outs: Stream) =
               discard getNimsuggest(req.fileuri).mod(req.filePath, dirtyfile = req.filestash)
           of "textDocument/didClose":
             textDocumentNotification(message, DidCloseTextDocumentParams, req):
-              let projectFile = getProjectFile(req.filePath)
+              let projectFile = getProjectFile(uriToPath(req.fileuri))
               debugLog "Got document close for URI: ", req.fileuri, " copied to ", req.filestash
               removeFile(req.filestash)
               projectFiles[projectFile].openFiles.excl(req.fileuri)

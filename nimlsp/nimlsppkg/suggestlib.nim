@@ -1,7 +1,6 @@
 import std/[strformat, strutils]
 import messageenums
 import nimsuggest
-# import compiler/ast
 export Suggest
 export IdeCmd
 export NimSuggest
