@@ -201,7 +201,7 @@ proc runCmd*(nimsuggest: NimSuggest, cmd: IdeCmd, file,
                   info),
             line: toLinenumber(info), column: toColumn(info), 
             forth: $severity(conf, report)))
-        return doRaise
+        return doNothing
     else:
       conf.structuredReportHook = defaultStructuredReportHook
     executeNoHooks(conf.ideCmd, file, dirtyfile, line, col,

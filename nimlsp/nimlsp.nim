@@ -36,39 +36,39 @@ var
   projectFiles = initTable[string, tuple[nimsuggest: NimSuggest, openFiles: OrderedSet[string]]]()
   openFiles = initTable[string, tuple[projectFile: string, fingerTable: seq[seq[tuple[u16pos, offset: int]]]]]()
 
-proc fileuri[T](p:T): string =
+template fileuri(p: untyped): string =
   p["textDocument"]["uri"].getStr
 
-proc filePath[T](p:T): string =
+template filePath(p: untyped): string =
   p.fileuri[7..^1]
 
-proc filestash[T](p:T): string =
+template filestash(p: untyped): string =
   storage / (hash(p.fileuri).toHex & ".nim" )
 
-proc rawLine[T](p:T): int =
+template rawLine(p: untyped): int =
   p["position"]["line"].getInt
 
-proc rawChar[T](p:T): int =
+template rawChar(p: untyped): int =
   p["position"]["character"].getInt
 
-proc col[T](openFiles: typeof openFiles; p: T): int =
+template col(openFiles: typeof openFiles; p: untyped): int =
   openFiles[p.fileuri].fingerTable[p.rawLine].utf16to8(p.rawChar)
 
-template textDocumentRequest(message, kind, name, body: untyped): untyped =
+template textDocumentRequest(message: typed; kind: typed; name, body: untyped): untyped =
   if message.hasKey("params"):
     let p = message["params"]
+    var name = kind(p)
     if p.isValid(kind, allowExtra = true):
-      var name = kind(p)
       body
     else:
       debugLog("Unable to parse data as ", kind)
 
-template textDocumentNotification(message, kind, name, body: untyped): untyped =
+template textDocumentNotification(message: typed; kind: typed; name, body: untyped): untyped =
   if message.hasKey("params"):
     var p = message["params"]
+    var name = kind(p)
     if p.isValid(kind, allowExtra = true):
       if "languageId" notin name["textDocument"] or name["textDocument"]["languageId"].getStr == "nim":
-        var name = kind(p)
         body
       else:
         debugLog("Unable to parse data as ", kind)
@@ -212,7 +212,6 @@ proc checkVersion(outs: Stream) =
       outs.notify("window/showMessage", create(ShowMessageParams, MessageType.Warning.int, message = "Current Nim version does not match the one NimLSP is built against " & version & " != " & NimVersion).JsonNode)
 
 proc main(ins: Stream, outs: Stream) =
-  outs.notify("window/showMessage", create(ShowMessageParams, MessageType.Warning.int, message = "Current storage: " & storage).JsonNode)
   checkVersion(outs)
   while true:
     try:
@@ -271,15 +270,14 @@ proc main(ins: Stream, outs: Stream) =
             )).JsonNode
             outs.respond(message,resp)
           of "textDocument/completion":
-            message.textDocumentRequest(CompletionParams, req):
+            textDocumentRequest(message, CompletionParams, req):
               debugLog "Running equivalent of: sug ", req.filePath, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              var suggestions: seq[Suggest]
-              # let suggestions = getNimsuggest(req.fileuri).sug(req.filePath, dirtyfile = req.filestash,
-              #   req.rawLine + 1,
-              #   openFiles.col(req)
-              # )
+              let suggestions = getNimsuggest(req.fileuri).sug(req.filePath, dirtyfile = req.filestash,
+                req.rawLine + 1,
+                openFiles.col(req)
+              )
               debugLog "Found suggestions: ",
                 suggestions[0 ..< min(suggestions.len, 10)],
                 if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
@@ -319,15 +317,14 @@ proc main(ins: Stream, outs: Stream) =
                   ).JsonNode
               outs.respond(message, completionItems)
           of "textDocument/hover":
-            message.textDocumentRequest(TextDocumentPositionParams, req):
+            textDocumentRequest(message, TextDocumentPositionParams, req):
               debugLog "Running equivalent of: def ", req.filePath, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              var suggestions: seq[Suggest]
-              # let suggestions = getNimsuggest(req.fileuri).def(req.filePath, dirtyfile = req.filestash,
-              #   req.rawLine + 1,
-              #   openFiles.col(req)
-              # )
+              let suggestions = getNimsuggest(req.fileuri).def(req.filePath, dirtyfile = req.filestash,
+                req.rawLine + 1,
+                openFiles.col(req)
+              )
               debugLog "Found suggestions: ",
                 suggestions[0 ..< min(suggestions.len, 10)],
                 if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
@@ -358,15 +355,14 @@ proc main(ins: Stream, outs: Stream) =
                   resp = create(Hover, markedString, rangeopt).JsonNode;
                 outs.respond(message, resp)
           of "textDocument/references":
-            message.textDocumentRequest(ReferenceParams, req):
+            textDocumentRequest(message, ReferenceParams, req):
               debugLog "Running equivalent of: use ", req.fileuri, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              var suggestions: seq[Suggest]
-              # let suggestions = getNimsuggest(req.fileuri).use(req.filePath, dirtyfile = req.filestash,
-              #   req.rawLine + 1,
-              #   openFiles.col(req)
-              # )
+              let suggestions = getNimsuggest(req.fileuri).use(req.filePath, dirtyfile = req.filestash,
+                req.rawLine + 1,
+                openFiles.col(req)
+              )
               debugLog "Found suggestions: ",
                 suggestions[0 ..< min(suggestions.len, 10)],
                 if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
@@ -385,15 +381,14 @@ proc main(ins: Stream, outs: Stream) =
               else:
                 outs.respond(message, response)
           of "textDocument/rename":
-            message.textDocumentRequest(RenameParams, req):
+            textDocumentRequest(message, RenameParams, req):
               debugLog "Running equivalent of: use ", req.fileuri, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              var suggestions: seq[Suggest]
-              # let suggestions = getNimsuggest(req.fileuri).use(req.filePath, dirtyfile = req.filestash,
-              #   req.rawLine + 1,
-              #   openFiles.col(req)
-              # )
+              let suggestions = getNimsuggest(req.fileuri).use(req.filePath, dirtyfile = req.filestash,
+                req.rawLine + 1,
+                openFiles.col(req)
+              )
               debugLog "Found suggestions: ",
                 suggestions[0..<min(suggestions.len, 10)],
                 if suggestions.len > 10: &" and {suggestions.len-10} more" else: ""
@@ -418,15 +413,14 @@ proc main(ins: Stream, outs: Stream) =
                 ).JsonNode
                 outs.respond(message, resp)
           of "textDocument/definition":
-            message.textDocumentRequest(TextDocumentPositionParams, req):
+            textDocumentRequest(message, TextDocumentPositionParams, req):
               debugLog "Running equivalent of: def ", req.fileuri, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
-              var declarations: seq[Suggest]
-              # let declarations = getNimsuggest(req.fileuri).def(req.filePath, dirtyfile = req.filestash,
-              #   req.rawLine + 1,
-              #   openFiles.col(req)
-              # )
+              let declarations = getNimsuggest(req.fileuri).def(req.filePath, dirtyfile = req.filestash,
+                req.rawLine + 1,
+                openFiles.col(req)
+              )
               debugLog "Found suggestions: ",
                 declarations[0..<min(declarations.len, 10)],
                 if declarations.len > 10: &" and {declarations.len-10} more" else: ""
@@ -445,14 +439,13 @@ proc main(ins: Stream, outs: Stream) =
                   ).JsonNode
               outs.respond(message, resp)
           of "textDocument/documentSymbol":
-            message.textDocumentRequest(DocumentSymbolParams, req):
+            textDocumentRequest(message, DocumentSymbolParams, req):
               debugLog "Running equivalent of: outline ", req.fileuri,
                         ";", req.filestash
-              var syms: seq[Suggest]
-              # let syms = getNimsuggest(req.fileuri).outline(
-              #   req.fileuri,
-              #   dirtyfile = req.filestash
-              # )
+              let syms = getNimsuggest(req.fileuri).outline(
+                req.fileuri,
+                dirtyfile = req.filestash
+              )
               debugLog "Found outlines: ", syms[0..<min(syms.len, 10)],
                         if syms.len > 10: &" and {syms.len-10} more" else: ""
               var resp: JsonNode
@@ -479,7 +472,7 @@ proc main(ins: Stream, outs: Stream) =
                   ).JsonNode
               outs.respond(message, resp)
           of "textDocument/signatureHelp":
-            message.textDocumentRequest(TextDocumentPositionParams, req):
+            textDocumentRequest(message, TextDocumentPositionParams, req):
               debugLog "Running equivalent of: con ", req.filePath, ";", req.filestash, ":",
                 req.rawLine + 1, ":",
                 openFiles.col(req)
@@ -519,7 +512,7 @@ proc main(ins: Stream, outs: Stream) =
           of "initialized":
             debugLog "Properly initialized"
           of "textDocument/didOpen":
-            message.textDocumentNotification(DidOpenTextDocumentParams, req):
+            textDocumentNotification(message, DidOpenTextDocumentParams, req):
               let
                 file = open(req.filestash, fmWrite)
                 projectFile = getProjectFile(uriToPath(req.fileuri))
@@ -534,13 +527,13 @@ proc main(ins: Stream, outs: Stream) =
                 projectFiles[projectFile] = (nimsuggest: initNimsuggest(projectFile, nimpath), openFiles: initOrderedSet[string]())
               projectFiles[projectFile].openFiles.incl(req.fileuri)
 
-              for line in textDoc["textDocument"]["text"].getStr.splitLines:
+              for line in req["textDocument"]["text"].getStr.splitLines:
                 openFiles[req.fileuri].fingerTable.add line.createUTFMapping()
                 file.writeLine line
               file.close()
           of "textDocument/didChange":
-            message.textDocumentNotification(DidChangeTextDocumentParams, req):
-              let file = open(filestash, fmWrite)
+            textDocumentNotification(message, DidChangeTextDocumentParams, req):
+              let file = open(req.filestash, fmWrite)
               debugLog "Got document change for URI: ", req.fileuri, " saving to ", req.filestash
               openFiles[req.fileuri].fingerTable = @[]
               for line in req["contentChanges"][0]["text"].getStr.splitLines:
@@ -551,7 +544,7 @@ proc main(ins: Stream, outs: Stream) =
               # Notify nimsuggest about a file modification.
               discard getNimsuggest(req.fileuri).mod(req.filePath, dirtyfile = req.filestash)
           of "textDocument/didClose":
-            message.textDocumentNotification(DidCloseTextDocumentParams, req):
+            textDocumentNotification(message, DidCloseTextDocumentParams, req):
               let projectFile = getProjectFile(req.filePath)
               debugLog "Got document close for URI: ", req.fileuri, " copied to ", req.filestash
               removeFile(req.filestash)
@@ -562,18 +555,17 @@ proc main(ins: Stream, outs: Stream) =
                           getNimsuggest(req.fileuri).stopNimsuggest()
               openFiles.del(req.fileuri)
           of "textDocument/didSave":
-            message.textDocumentNotification(DidSaveTextDocumentParams, req):
+            textDocumentNotification(message, DidSaveTextDocumentParams, req):
               if req["text"].isSome:
-                let file = open(filestash, fmWrite)
+                let file = open(req.filestash, fmWrite)
                 debugLog "Got document save for URI: ", req.fileuri, " saving to ", req.filestash
                 openFiles[req.fileuri].fingerTable = @[]
                 for line in req["text"].unsafeGet.getStr.splitLines:
                   openFiles[req.fileuri].fingerTable.add line.createUTFMapping()
                   file.writeLine line
                 file.close()
-              debugLog "fileuri: ", req.fileuri, ", project file: ", openFiles[req.fileuri].projectFile, ", dirtyfile: ", filestash
-              var diagnostics: seq[Suggest]
-              # let diagnostics = getNimsuggest(req.fileuri).chk(req.filePath, dirtyfile = req.filestash)
+              debugLog "fileuri: ", req.fileuri, ", project file: ", openFiles[req.fileuri].projectFile, ", dirtyfile: ", req.filestash
+              let diagnostics = getNimsuggest(req.fileuri).chk(req.filePath, dirtyfile = req.filestash)
               debugLog "Got diagnostics: ",
                 diagnostics[0..<min(diagnostics.len, 10)],
                 if diagnostics.len > 10: &" and {diagnostics.len-10} more" else: ""
@@ -605,11 +597,9 @@ proc main(ins: Stream, outs: Stream) =
                 )
 
               # Invoke chk on all open files.
-              # let projectFile = openFiles[req.fileuri].projectFile
-              var projectFile: string
+              let projectFile = openFiles[req.fileuri].projectFile
               for f in projectFiles[projectFile].openFiles.items:
-                var diagnostics: seq[Suggest]
-                # let diagnostics = getNimsuggest(f).chk(req.filePath, dirtyfile = req.filestash)
+                let diagnostics = getNimsuggest(f).chk(req.filePath, dirtyfile = req.filestash)
                 debugLog "Got diagnostics: ",
                   diagnostics[0 ..< min(diagnostics.len, 10)],
                   if diagnostics.len > 10: &" and {diagnostics.len-10} more" else: ""
