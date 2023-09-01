@@ -1185,7 +1185,7 @@ proc track(tracked: PEffects, n: PNode) =
   of nkVarSection, nkLetSection:
     for child in n:
       let last = lastSon(child)
-      if child.kind == nkIdentDefs and sfCompileTime in child[0].sym.flags:
+      if child.kind == nkIdentDefs and child[0].kind == nkSym and sfCompileTime in child[0].sym.flags:
         # don't analyse the definition of ``.compileTime`` globals. They
         # don't "exist" in the context (i.e., run time) we're analysing
         # in

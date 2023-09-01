@@ -101,7 +101,7 @@ proc symChoice(c: PContext, n: PNode, s: PSym, r: TSymChoiceRule;
   var i = 0
   a = initOverloadIter(o, c, n)
   while a != nil:
-    if a.kind != skModule:
+    if a.kind != skModule and (not isField or sfGenSym notin a.flags):
       inc(i)
       if i > 1: break
     elif a.isError:
@@ -125,7 +125,7 @@ proc symChoice(c: PContext, n: PNode, s: PSym, r: TSymChoiceRule;
     result = newNodeIT(kind, info, newTypeS(tyNone, c))
     a = initOverloadIter(o, c, n)
     while a != nil:
-      if a.kind != skModule and not(isField and sfGenSym in s.flags):
+      if a.kind != skModule and (not isField or sfGenSym notin a.flags):
         incl(a.flags, sfUsed)
         markOwnerModuleAsUsed(c, a)
         result.add newSymNode(a, info)

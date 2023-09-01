@@ -2153,11 +2153,15 @@ proc checkCanEval(c: TCtx; n: CgNode) =
   # proc foo() = var x ...
   let s = n.sym
   if {sfCompileTime, sfGlobal} <= s.flags: return
-  if s.importcCondVar:
-    # Defining importc'ed variables is allowed and since `checkCanEval` is
-    # also used by `genVarSection`, don't fail here
-    return
-  if s.kind in {skProc, skFunc, skConverter, skMethod,
+  if s.importcCondVar: return
+  if s.kind in {skVar, skTemp, skLet, skParam, skResult} and
+      not s.isOwnedBy(c.prc.sym) and s.owner != c.module and c.mode != emRepl:
+    # little hack ahead for bug #12612: assume gensym'ed variables
+    # are in the right scope:
+    if sfGenSym in s.flags and c.prc.sym == nil: discard
+    elif s.kind == skParam and s.typ.kind == tyTypeDesc: discard
+    else: cannotEval(c, n)
+  elif s.kind in {skProc, skFunc, skConverter, skMethod,
                   skIterator} and sfForward in s.flags:
     cannotEval(c, n)
 

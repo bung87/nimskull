@@ -170,8 +170,8 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
     let u = if conf.suggestVersion != 1: graph.symFromInfo(conf.m.trackPos) else: graph.usageSym
     if u != nil:
       listUsages(graph, u)
-  #   else:
-  #     localError(conf, conf.m.trackPos, "found no symbol at this position " & (conf $ conf.m.trackPos))
+    else:
+      stderr.writeLine "found no symbol at this position " & (conf $ conf.m.trackPos)
 
 proc runCmd*(nimsuggest: NimSuggest, cmd: IdeCmd, file,
       dirtyfile: AbsoluteFile, line, col: int): seq[Suggest] =
