@@ -436,7 +436,12 @@ proc newSymGNode*(kind: TSymKind, n: PNode, c: PContext): PNode =
         recoverySym.owner = currOwner
         c.config.makeError(n, recoverySym, ExpectedKindMismatch)
       else:
-        n
+        let (ident, err) = considerQuotedIdent(c, n)
+        if err.isNil:
+          let s = newSym(kind, ident, nextSymId c.idgen, currOwner, info)
+          newSymNode(s, info)
+        else:
+          c.config.makeError(err, n.sym, IdentGenFailed)
   of nkIdent, nkAccQuoted:
     # xxx: sym choices qualify here, but shouldn't those be errors in
     #      definition positions?
