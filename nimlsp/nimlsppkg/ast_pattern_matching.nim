@@ -1,17 +1,3 @@
-# ast_pattern_matching
-# Copyright Arne Döring
-# a general ast pattern matching library with a focus on correctness and good error messages
-# DONE arbitrary matching conditions with if ( it is the |= operator ).
-# TODO matchRepr
-# DONE make it a nimble package
-# DONE document match constant as literal
-# DONE all tests pass
-# DONE strVal etc restriction
-# DONE ident matching
-# DONE join WrongLengthKind
-# DONE resolue ambiguety
-# DONE ensure that the argument symbol is not evaluated several times
-
 import macros, strutils, tables
 
 export macros
@@ -131,8 +117,8 @@ proc expectIdent(arg: NimNode; strVal: string): void {.compileTime.} =
     error("Expect ident `" & strVal & "` but got " & arg.repr)
 
 proc matchLengthKind*(arg: NimNode; kind: set[NimNodeKind]; length: int): MatchingError {.compileTime.} =
-  template kindFail: bool   = not(kind.card == 0 or arg.kind in kind)
-  template lengthFail: bool = not(length < 0 or length == arg.len)
+  let kindFail: bool   = not(kind.card == 0 or arg.kind in kind)
+  let lengthFail: bool = not(length < 0 or length == arg.len)
   if kindFail or lengthFail:
     result.node = arg
     result.kind = WrongKindLength
@@ -144,8 +130,8 @@ proc matchLengthKind*(arg: NimNode; kind: NimNodeKind; length: int): MatchingErr
   matchLengthKind(arg, {kind}, length)
 
 proc matchValue(arg: NimNode; kind: set[NimNodeKind]; value: SomeInteger): MatchingError {.compileTime.} =
-  template  kindFail: bool  = not(kind.card == 0 or arg.kind in kind)
-  template  valueFail: bool = arg.intVal != int(value)
+  let  kindFail: bool  = not(kind.card == 0 or arg.kind in kind)
+  let  valueFail: bool = arg.intVal != int(value)
   if kindFail or valueFail:
     result.node = arg
     result.kind = WrongKindValue
@@ -156,8 +142,8 @@ proc matchValue(arg: NimNode; kind: NimNodeKind; value: SomeInteger): MatchingEr
   matchValue(arg, {kind}, value)
 
 proc matchValue(arg: NimNode; kind: set[NimNodeKind]; value: SomeFloat): MatchingError {.compileTime.} =
-  template kindFail: bool  = not(kind.card == 0 or arg.kind in kind)
-  template valueFail: bool = arg.floatVal != float(value)
+  let kindFail: bool  = not(kind.card == 0 or arg.kind in kind)
+  let valueFail: bool = arg.floatVal != float(value)
   if kindFail or valueFail:
     result.node = arg
     result.kind = WrongKindValue
@@ -171,8 +157,8 @@ const nnkStrValKinds = {nnkStrLit, nnkRStrLit, nnkTripleStrLit, nnkIdent, nnkSym
 
 proc matchValue(arg: NimNode; kind: set[NimNodeKind]; value: string): MatchingError {.compileTime.} =
   # if kind * nnkStringLiterals TODO do something that ensures that here is only checked for string literals
-  template kindFail: bool  = not(kind.card == 0 or arg.kind in kind)
-  template valueFail: bool =
+  let kindFail: bool  = not(kind.card == 0 or arg.kind in kind)
+  let valueFail: bool =
     if kind.card == 0:
       false
     else:
@@ -202,19 +188,6 @@ proc checkCustomExpr*(arg: NimNode; cond: bool, exprstr: string): MatchingError 
     result.node = arg
     result.kind = WrongCustomCondition
     result.strVal = exprstr
-
-static:
-  var literals: array[19, NimNode]
-  var i = 0
-  for litKind in nnkLiterals:
-    literals[i] = ident($litKind)
-    i += 1
-
-  var nameToKind = newTable[string, NimNodeKind]()
-  for kind in NimNodeKind:
-    nameToKind[ ($kind)[3..^1] ] = kind
-
-  let identifierKinds = newLit({nnkSym, nnkIdent, nnkOpenSymChoice, nnkClosedSymChoice})
 
 proc generateMatchingCode(astSym: NimNode, pattern: NimNode, depth: int, blockLabel, errorSym, localsArraySym: NimNode; dest: NimNode): int =
   ## return the number of indices used in the array for local variables.

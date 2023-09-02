@@ -31,6 +31,7 @@ import
     idents,
     typesrenderer,
     types,
+    astalgo,
   ],
   compiler/modules/[
     modulegraphs
@@ -2716,11 +2717,11 @@ proc rawExecute(c: var TCtx, pc: var int): YieldReason =
     of opcEqIdent:
       decodeBC(rkInt)
 
-      func asCString(a: TFullReg): cstring =
+      func getName(a: TFullReg): string =
         case a.kind
         of rkLocation, rkHandle:
           if a.handle.typ.kind == akString:
-            result = deref(a.handle).strVal.asCString()
+            result = $ deref(a.handle).strVal
         of rkNimNode:
           var aNode = a.nimNode
 
@@ -2737,11 +2738,11 @@ proc rawExecute(c: var TCtx, pc: var int): YieldReason =
 
           case aNode.kind
           of nkIdent:
-            result = aNode.ident.s.cstring
+            result = aNode.ident.s
           of nkSym:
-            result = aNode.sym.name.s.cstring
+            result = aNode.sym.name.s
           of nkOpenSymChoice, nkClosedSymChoice:
-            result = aNode[0].sym.name.s.cstring
+            result = aNode[0].sym.name.s
           else:
             discard
         else:
@@ -2752,12 +2753,12 @@ proc rawExecute(c: var TCtx, pc: var int): YieldReason =
 
       # These vars are of type `cstring` to prevent unnecessary string copy.
       let
-        aStrVal = asCString(regs[rb])
-        bStrVal = asCString(regs[rc])
+        aStrVal = getName(regs[rb])
+        bStrVal = getName(regs[rc])
 
-      regs[ra].intVal =
-        if aStrVal != nil and bStrVal != nil:
-          ord(idents.cmpIgnoreStyle(aStrVal, bStrVal, high(int)) == 0)
+      regs[ra].intVal = 
+        if aStrVal != "" and bStrVal != "":
+          ord(sameIgnoreBacktickGensymInfo(aStrVal, $bStrVal))
         else:
           0
     of opcStrToIdent:

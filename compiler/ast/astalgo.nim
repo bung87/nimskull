@@ -144,7 +144,7 @@ proc getSymFromList*(list: PNode, ident: PIdent, start: int = 0): PSym =
     else: return nil
   result = nil
 
-proc sameIgnoreBacktickGensymInfo(a, b: string): bool =
+proc sameIgnoreBacktickGensymInfo*(a, b: string): bool =
   if a[0] != b[0]: return false
   var alen = a.len - 1
   while alen > 0 and a[alen] != '`': dec(alen)
