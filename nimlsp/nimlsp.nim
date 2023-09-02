@@ -213,12 +213,14 @@ proc checkVersion(outs: Stream) =
 
 proc main(ins: Stream, outs: Stream) =
   checkVersion(outs)
+  var message: JsonNode
+  var frame: string
   while true:
     try:
-      debugLog "Trying to read frame"
-      let frame = ins.readFrame
-      debugLog "Got frame"
-      let message = frame.parseJson
+      debugLog "Trying to read message"
+      frame = ins.readFrame
+      debugLog "Got message"
+      message = frame.parseJson
       if isValid(message, RequestMessage):
         debugLog "Got valid Request message of type ", message["method"].getStr
         if not initialized and message["method"].getStr != "initialize":
@@ -495,8 +497,9 @@ proc main(ins: Stream, outs: Stream) =
               ).JsonNode
               outs.respond(message, resp)
           else:
-            debugLog "Unknown request"
-            outs.error(message, InvalidRequest, "Unknown request: " & frame, newJObject())
+            let msg = "Unknown request method: " & message["method"].getStr
+            debugLog msg
+            outs.error(message, MethodNotFound, msg, newJObject())
         continue
       elif isValid(message, NotificationMessage):
         debugLog "Got valid Notification message of type ", message["method"].getStr
@@ -639,8 +642,17 @@ proc main(ins: Stream, outs: Stream) =
                 response).JsonNode
               outs.notify("textDocument/publishDiagnostics", resp)
           else:
-            warnLog "Got unknown notification message"
+            let msg = "Unknown notification method: " & message["method"].getStr
+            warnLog msg
+            outs.error(message, MethodNotFound, msg, newJObject())
         continue
+      else:
+        let msg = "Invalid message: " & frame
+        debugLog msg
+        outs.error(message, InvalidRequest, msg, newJObject())
+    except MalformedFrame as e:
+      warnLog "Got Invalid message id: ", e.msg
+      continue
     except UriParseError as e:
       warnLog "Got exception parsing URI: ", e.msg
       continue

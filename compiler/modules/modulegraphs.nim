@@ -630,7 +630,7 @@ proc isDirty*(g: ModuleGraph; m: PSym): bool =
   result = g.suggestMode and sfDirty in m.flags
 
 proc getBody*(g: ModuleGraph; s: PSym): PNode {.inline.} =
-  if s.kind == skError:
+  if s.kind == skError or s.ast.kind == nkError:
     result = s.ast
     assert result != nil and result.kind == nkError,
       "assume we've populated the nkError here"

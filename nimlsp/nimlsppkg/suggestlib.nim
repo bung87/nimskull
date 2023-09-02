@@ -101,6 +101,11 @@ proc `mod`*(nimsuggest: NimSuggest, file: string, dirtyfile = ""): seq[Suggest] 
 when isMainModule:
   import os
   var graph = initNimSuggest(currentSourcePath, nimPath = currentSourcePath.parentDir.parentDir.parentDir)
+  for f in walkFiles(currentSourcePath.parentDir.parentDir & "/**/*.nim"):
+    echo "outline:" & f
+    let syms = graph.outline(f, f)
+    echo "outline: symbols(" & $syms.len & ")"
+
   var suggestions = graph.sug(currentSourcePath, currentSourcePath, 86, 16)
   echo "Got ", suggestions.len, " suggestions"
   for suggestion in suggestions:
