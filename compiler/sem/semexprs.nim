@@ -2891,7 +2891,7 @@ proc semMagic(c: PContext, n: PNode, s: PSym, flags: TExprFlags): PNode =
     result = semOverloadedCallAnalyseEffects(c, n, flags)
     if result == nil:
       result = errorNode(c, n)
-    else:
+    elif result.safeLen != 0:
       let callee = result[0].sym
       if callee.magic == mNone:
         semFinishOperands(c, result)
@@ -2900,6 +2900,8 @@ proc semMagic(c: PContext, n: PNode, s: PSym, flags: TExprFlags): PNode =
       result = fixVarArgumentsAndAnalyse(c, result)
       if callee.magic != mNone:
         result = magicsAfterOverloadResolution(c, result, flags)
+    else:
+      unreachable()
   of mRunnableExamples:
     markUsed(c, n.info, s)
     if c.config.cmd in cmdDocLike and n.len >= 2 and n.lastSon.kind == nkStmtList:
