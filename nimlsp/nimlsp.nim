@@ -58,7 +58,7 @@ template textDocumentRequest(message: typed; kind: typed; name, body: untyped): 
   if message.hasKey("params"):
     let p = message["params"]
     var name = kind(p)
-    if p.isValid(kind, allowExtra = true):
+    if p.isValid(kind, allowExtra = false):
       body
     else:
       debugLog("Unable to parse data as ", kind)
@@ -113,20 +113,22 @@ proc uriToPath(uri: string): string =
     else:
       parsed.path).decodeUrl
 
-proc parseId(node: JsonNode): int =
+proc parseId(node: JsonNode): string =
+  if node == nil: return
   if node.kind == JString:
-    parseInt(node.getStr)
+    node.getStr
   elif node.kind == JInt:
-    node.getInt
+    $node.getInt
   else:
-    raise newException(MalformedFrame, "Invalid id node: " & repr(node))
+    ""
 
 proc respond(outs: Stream, request: JsonNode, data: JsonNode) =
   let resp = create(ResponseMessage, "2.0", parseId(request["id"]), some(data), none(ResponseError)).JsonNode
   outs.sendJson resp
 
 proc error(outs: Stream, request: JsonNode, errorCode: ErrorCode, message: string, data: JsonNode) =
-  let resp = create(ResponseMessage, "2.0", parseId(request["id"]), none(JsonNode), some(create(ResponseError, ord(errorCode), message, data))).JsonNode
+  let err = some(create(ResponseError, ord(errorCode), message, data))
+  let resp = create(ResponseMessage, "2.0", parseId(request{"id"}), none(JsonNode), err).JsonNode
   outs.sendJson resp
 
 proc notify(outs: Stream, notification: string, data: JsonNode) =
