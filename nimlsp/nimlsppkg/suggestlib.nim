@@ -99,9 +99,10 @@ proc `mod`*(nimsuggest: NimSuggest, file: string, dirtyfile = ""): seq[Suggest] 
   nimsuggest.runCmd(ideMod, AbsoluteFile file, AbsoluteFile dirtyfile, 0, 0)
 
 when isMainModule:
-  import os
+  import os, sequtils, algorithm
   var graph = initNimSuggest(currentSourcePath, nimPath = currentSourcePath.parentDir.parentDir.parentDir)
-  for f in walkFiles(currentSourcePath.parentDir.parentDir & "/**/*.nim"):
+  var files = toSeq(walkDirRec(currentSourcePath.parentDir.parentDir)).filterIt(it.endsWith(".nim")).sort()
+  for f in files:
     echo "outline:" & f
     let syms = graph.outline(f, f)
     echo "outline: symbols(" & $syms.len & ")"
