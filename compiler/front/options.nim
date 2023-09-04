@@ -1457,6 +1457,7 @@ proc canonicalImportAux*(conf: ConfigRef, file: AbsoluteFile): string =
   ## same rules as canonical imports (see `canonicalImport`), except the module
   ## name is followed by a `.nim` file extension, and the directory separators
   ## are OS specific.
+  assert isAbsolute(file.string)
   let
     desc = getPkgDesc(conf, file.string)
     (_, moduleName, ext) = file.splitFile

@@ -106,7 +106,7 @@ func wrap(conf: ConfigRef, text: ColText): string =
 template tern(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
   ## Shorthand for inline if/else. Allows use of conditions in strformat,
   ## simplifies use in expressions. Less picky with formatting
-  {.line: instantiationInfo(fullPaths = true).}:
+  {.line.}:
     block:
       if predicate: tBranch else: fBranch
 
