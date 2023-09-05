@@ -83,7 +83,6 @@ proc initNimSuggest*(project: string, nimPath: string = ""): NimSuggest =
 
   proc mockCmdLine(pass: TCmdLinePass, argv: openArray[string];
         conf: ConfigRef) =
-    conf.suggestVersion = 0
     conf.writeHook = proc(conf: ConfigRef, s: string, flags: MsgFlags) = stderr.write s
     
     let a = unixToNativePath(project)
@@ -145,9 +144,7 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
              graph: ModuleGraph) =
   let conf = graph.config
   conf.ideCmd = cmd
-  if cmd == ideUse and conf.suggestVersion != 0:
-    graph.vm = nil # discard the VM and JIT state
-    graph.resetAllModules()
+
   var isKnownFile = true
   let dirtyIdx = fileInfoIdx(conf, file, isKnownFile)
 
@@ -157,11 +154,10 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
   conf.m.trackPos = newLineInfo(dirtyIdx, line, col)
   conf.m.trackPosAttached = false
   conf.errorCounter = 0
-  if conf.suggestVersion == 1:
-    graph.usageSym = nil
+
   if not isKnownFile:
     graph.compileProject(dirtyIdx)
-  if conf.suggestVersion == 0 and conf.ideCmd in {ideUse, ideDus} and
+  if conf.ideCmd in {ideUse, ideDus} and
       dirtyfile.isEmpty:
     discard "no need to recompile anything"
   else:
@@ -175,7 +171,7 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
       if isKnownFile:
         graph.compileProject(modIdx)
   if conf.ideCmd in {ideUse, ideDus}:
-    let u = if conf.suggestVersion != 1: graph.symFromInfo(conf.m.trackPos) else: graph.usageSym
+    let u = graph.symFromInfo(conf.m.trackPos)
     if u != nil:
       listUsages(graph, u)
     else:
