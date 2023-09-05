@@ -469,17 +469,11 @@ proc isTracked*(current, trackPos: TLineInfo, tokenLen: int): bool =
       return true
 
 when defined(nimsuggest):
-  # Since TLineInfo defined a == operator that doesn't include the column,
-  # we map TLineInfo to a unique int here for this lookup table:
-  proc infoToInt(info: TLineInfo): int64 =
-    info.fileIndex.int64 + info.line.int64 shl 32 + info.col.int64 shl 48
 
   proc addNoDup(s: PSym; info: TLineInfo) =
     # ensure nothing gets too slow:
-    if s.allUsages.len > 500: return
-    let infoAsInt = info.infoToInt
     for infoB in s.allUsages:
-      if infoB.infoToInt == infoAsInt: return
+      if exactEquals(infoB, info): return
     s.allUsages.add(info)
 
 proc findUsages(g: ModuleGraph; info: TLineInfo; s: PSym; usageSym: var PSym) =
