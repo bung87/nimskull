@@ -37,9 +37,9 @@ from compiler/ast/reports import Report,
   kind,
   location
 
-# from compiler/front/main import customizeForBackend
+from compiler/front/main import customizeForBackend
 
-from compiler/tools/suggest import isTracked, listUsages, `$`
+from compiler/tools/suggest import isTracked, listUsages, suggestSym, `$`
 
 export Suggest
 export IdeCmd
@@ -118,7 +118,11 @@ proc initNimSuggest*(project: string, nimPath: string = ""): NimSuggest =
     conf.prefixDir = AbsoluteDir nimPath
 
   var graph = newModuleGraph(cache, conf)
+  graph.onMarkUsed = proc (g: ModuleGraph; info: TLineInfo; s: PSym; usageSym: var PSym; isDecl: bool) =
+    suggestSym(g, info, s, usageSym, isDecl)
+  graph.onSymImport = graph.onMarkUsed # same callback
   if self.loadConfigsAndProcessCmdLine(cache, conf, graph, []):
+    customizeForBackend(graph, conf, backendC)
     mockCommand(graph)
 
   retval.doStopCompile = proc (): bool = false
