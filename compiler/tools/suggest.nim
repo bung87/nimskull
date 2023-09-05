@@ -473,7 +473,7 @@ when defined(nimsuggest):
   proc addNoDup(s: PSym; info: TLineInfo) =
     # ensure nothing gets too slow:
     for infoB in s.allUsages:
-      if exactEquals(infoB, info): return
+      if infoB == info: return
     s.allUsages.add(info)
 
 proc findUsages(g: ModuleGraph; info: TLineInfo; s: PSym; usageSym: var PSym) =
@@ -602,7 +602,7 @@ proc suggestExprNoCheck*(c: PContext, n: PNode) =
     suggestQuit()
 
 proc suggestExpr*(c: PContext, n: PNode) =
-  if exactEquals(c.config.m.trackPos, n.info): suggestExprNoCheck(c, n)
+  if c.config.m.trackPos == n.info: suggestExprNoCheck(c, n)
 
 proc suggestDecl*(c: PContext, n: PNode; s: PSym) =
   let attached = c.config.m.trackPosAttached
