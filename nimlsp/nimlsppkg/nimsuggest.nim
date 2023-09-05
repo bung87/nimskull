@@ -135,8 +135,8 @@ proc findNode(n: PNode; trackPos: TLineInfo): PSym =
       let res = findNode(n[i], trackPos)
       if res != nil: return res
 
-proc symFromInfo(graph: ModuleGraph; trackPos: TLineInfo): PSym =
-  let m = graph.getModule(trackPos.fileIndex)
+proc symFromInfo(graph: ModuleGraph; trackPos: TLineInfo; moduleIdx: FileIndex): PSym =
+  let m = graph.getModule(moduleIdx)
   if m != nil and m.ast != nil:
     result = findNode(m.ast, trackPos)
 
@@ -154,28 +154,28 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
   conf.m.trackPos = newLineInfo(dirtyIdx, line, col)
   conf.m.trackPosAttached = false
   conf.errorCounter = 0
-
+  var moduleIdx: FileIndex
   if not isKnownFile:
+    moduleIdx = dirtyIdx
     graph.compileProject(dirtyIdx)
   if conf.ideCmd in {ideUse, ideDus} and
       dirtyfile.isEmpty:
     discard "no need to recompile anything"
   else:
-    let modIdx = graph.parentModule(dirtyIdx)
+    moduleIdx = graph.parentModule(dirtyIdx)
     graph.markDirty dirtyIdx
     graph.markClientsDirty dirtyIdx
     # partially recompiling the project means that that VM and JIT state
     # would become stale, which we prevent by discarding all of it:
     graph.vm = nil
     if conf.ideCmd != ideMod:
-      if isKnownFile:
-        graph.compileProject(modIdx)
+      graph.compileProject(moduleIdx)
   if conf.ideCmd in {ideUse, ideDus}:
-    let u = graph.symFromInfo(conf.m.trackPos)
+    let u = graph.symFromInfo(conf.m.trackPos, moduleIdx)
     if u != nil:
       listUsages(graph, u)
     else:
-      stderr.writeLine "found no symbol at this position " & (conf $ conf.m.trackPos)
+      stderr.writeLine "found no symbol at position: " & (conf $ conf.m.trackPos)
 
 proc runCmd*(nimsuggest: NimSuggest, cmd: IdeCmd, file,
       dirtyfile: AbsoluteFile, line, col: int): seq[Suggest] =
