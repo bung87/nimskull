@@ -521,14 +521,14 @@ proc main(ins: Stream, outs: Stream) =
               let
                 file = open(req.filestash, fmWrite)
                 projectFile = getProjectFile(uriToPath(req.fileuri))
-              debugLog "New document opened for URI: ", req.fileuri, " saving to ", req.filestash
+              debugLog "New document: ", req.fileuri, " stash: ", req.filestash
               openFiles[req.fileuri] = (
                 projectFile: projectFile,
                 fingerTable: @[]
               )
 
               if projectFile notin projectFiles:
-                debugLog "Initialising project with ", nimpath, " ", projectFile
+                debugLog "Initialising with project file: ", projectFile
                 projectFiles[projectFile] = (nimsuggest: initNimsuggest(projectFile, nimpath), openFiles: initOrderedSet[string]())
               projectFiles[projectFile].openFiles.incl(req.fileuri)
 

@@ -63,10 +63,11 @@ proc initNimSuggest*(project: string, nimPath: string = ""): NimSuggest =
     registerPass graph, verbosePass
     registerPass graph, semPass
     conf.setCmd cmdIdeTools
-    wantMainModule(conf)
+    # main module checked in compileProject
+    # wantMainModule(conf)
 
-    if not fileExists(conf.projectFull):
-      quit "cannot find file: " & conf.projectFull.string
+    # if not fileExists(conf.projectFull):
+    #   quit "cannot find file: " & conf.projectFull.string
 
     add(conf.searchPaths, conf.libpath)
 
@@ -157,12 +158,14 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
   var moduleIdx: FileIndex
   if not isKnownFile:
     moduleIdx = dirtyIdx
+    stderr.writeLine "compile module:" & toFullPathConsiderDirty(conf, moduleIdx).string
     graph.compileProject(dirtyIdx)
   if conf.ideCmd in {ideUse, ideDus} and
       dirtyfile.isEmpty:
     discard "no need to recompile anything"
   else:
     moduleIdx = graph.parentModule(dirtyIdx)
+    stderr.writeLine "compile module:" & toFullPathConsiderDirty(conf, moduleIdx).string
     graph.markDirty dirtyIdx
     graph.markClientsDirty dirtyIdx
     # partially recompiling the project means that that VM and JIT state
