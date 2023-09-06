@@ -141,8 +141,7 @@ type Certainty = enum
   Cfg,
   Nimble
 
-proc getProjectFile(fileUri: string): string =
-  let file = fileUri.decodeUrl
+proc getProjectFile(file: string): string =
   result = file
   let (dir, _, _) = result.splitFile()
   var
