@@ -169,7 +169,7 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
       moduleIdx = graph.parentModule(dirtyIdx)
       stderr.writeLine "Compile known module: " & toFullPath(conf, moduleIdx).string
       graph.markDirty dirtyIdx
-      # graph.markClientsDirty dirtyIdx
+      graph.markClientsDirty dirtyIdx
       # partially recompiling the project means that that VM and JIT state
       # would become stale, which we prevent by discarding all of it:
       graph.vm = nil
