@@ -100,7 +100,7 @@ proc `mod`*(nimsuggest: NimSuggest, file: string, dirtyfile = ""): seq[Suggest] 
 
 when isMainModule:
   import os, sequtils, algorithm
-  var graph = initNimSuggest(currentSourcePath, nimPath = currentSourcePath.parentDir.parentDir.parentDir)
+  var graph = initNimSuggest(currentSourcePath.parentDir.parentDir / "nimlsp.nim", nimPath = currentSourcePath.parentDir.parentDir.parentDir)
   var files = toSeq(walkDirRec(currentSourcePath.parentDir.parentDir)).filterIt(it.endsWith(".nim")).sorted()
   for f in files:
     echo "outline:" & f
