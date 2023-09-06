@@ -220,7 +220,6 @@ proc main(ins: Stream, outs: Stream) =
     try:
       debugLog "Trying to read message"
       frame = ins.readFrame
-      debugLog "Got message"
       message = frame.parseJson
       if isValid(message, RequestMessage):
         debugLog "Got valid Request message of type ", message["method"].getStr
