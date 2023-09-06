@@ -444,8 +444,9 @@ proc main(ins: Stream, outs: Stream) =
             textDocumentRequest(message, DocumentSymbolParams, req):
               debugLog "Running equivalent of: outline ", req.fileuri,
                         " ", req.filestash
+              let projectFile = openFiles[req.fileuri].projectFile
               let syms = getNimsuggest(req.fileuri).outline(
-                req.fileuri,
+                req.filePath,
                 dirtyfile = req.filestash
               )
               debugLog "Found outlines: ", syms[0..<min(syms.len, 10)],

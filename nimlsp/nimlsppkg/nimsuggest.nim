@@ -163,13 +163,13 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
   if needCompile:
     if not isKnownFile:
       moduleIdx = dirtyIdx
-      stderr.writeLine "compile module:" & toFullPathConsiderDirty(conf, moduleIdx).string
-      discard graph.compileModule(dirtyIdx, {})
+      stderr.writeLine "Compile unknown module: " & toFullPath(conf, moduleIdx).string
+      discard graph.compileModule(moduleIdx, {})
     else:
       moduleIdx = graph.parentModule(dirtyIdx)
-      stderr.writeLine "compile module:" & toFullPathConsiderDirty(conf, moduleIdx).string
+      stderr.writeLine "Compile known module: " & toFullPath(conf, moduleIdx).string
       graph.markDirty dirtyIdx
-      graph.markClientsDirty dirtyIdx
+      # graph.markClientsDirty dirtyIdx
       # partially recompiling the project means that that VM and JIT state
       # would become stale, which we prevent by discarding all of it:
       graph.vm = nil

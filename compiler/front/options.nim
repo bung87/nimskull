@@ -1177,6 +1177,7 @@ proc fileInfoKnown*(conf: ConfigRef; filename: AbsoluteFile): bool =
 proc fileInfoIdx*(conf: ConfigRef; filename: AbsoluteFile; isKnownFile: var bool): FileIndex =
   result = conf.m.rawPathToIndexTbl.getOrDefault(filename.string, InvalidFileIdx)
   if result != InvalidFileIdx:
+    isKnownFile = true
     return
   var
     canon: AbsoluteFile
