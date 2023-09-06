@@ -368,7 +368,7 @@ passField numberOfProcessors, int
 passField outFile,            RelativeFile
 passField outDir,             AbsoluteDir
 passField depfile,            AbsoluteFile
-passField projectPath,        AbsoluteDir
+passField projectDir,        AbsoluteDir
 passField projectName,        string
 passField projectFull,        AbsoluteFile
 
@@ -1109,14 +1109,14 @@ proc setDefaultLibpath*(conf: ConfigRef) =
 proc canonicalizePath*(conf: ConfigRef; path: AbsoluteFile): AbsoluteFile =
   result = AbsoluteFile path.string.expandFilename
 
-proc setFromProjectName*(conf: ConfigRef; projectName: string) =
+proc setProjectFile*(conf: ConfigRef; projectFile: string) =
   try:
-    conf.projectFull = canonicalizePath(conf, AbsoluteFile projectName)
+    conf.projectFull = canonicalizePath(conf, AbsoluteFile projectFile)
   except OSError:
-    conf.projectFull = AbsoluteFile projectName
+    conf.projectFull = AbsoluteFile projectFile
   let p = splitFile(conf.projectFull)
   let dir = if p.dir.isEmpty: AbsoluteDir getCurrentDir() else: p.dir
-  conf.projectPath = AbsoluteDir canonicalizePath(conf, AbsoluteFile dir)
+  conf.projectDir = AbsoluteDir canonicalizePath(conf, AbsoluteFile dir)
   conf.projectName = p.name
 
 proc removeTrailingDirSep*(path: string): string =
@@ -1201,7 +1201,7 @@ proc fileInfoIdx*(conf: ConfigRef; filename: AbsoluteFile; isKnownFile: var bool
     result = conf.m.fileInfos.len.FileIndex
     #echo "ID ", result.int, " ", canon2
     conf.m.fileInfos.add(newFileInfo(canon, if pseudoPath: RelativeFile filename
-                                            else: relativeTo(canon, conf.projectPath)))
+                                            else: relativeTo(canon, conf.projectDir)))
     conf.m.filenameToIndexTbl[canon2] = result
 
   conf.m.rawPathToIndexTbl[filename.string] = result
@@ -1241,7 +1241,7 @@ proc getNimcacheDir*(conf: CurrentConf): AbsoluteDir =
              conf.nimcacheDir
            elif conf.backend == backendJs:
              if conf.outDir.isEmpty:
-               conf.projectPath / genSubDir
+               conf.projectDir / genSubDir
              else:
                conf.outDir / genSubDir
            else:
@@ -1262,8 +1262,7 @@ proc pathSubs*(conf: ConfigRef; p, config: string): string =
     "home", home,
     "config", config,
     "projectname", conf.projectName,
-    "projectpath", conf.projectPath.string,
-    "projectdir", conf.projectPath.string,
+    "projectdir", conf.projectDir.string,
     "nimcache", getNimcacheDir(conf).string]).expandTilde
 
 iterator nimbleSubs*(conf: ConfigRef; p: string): string =

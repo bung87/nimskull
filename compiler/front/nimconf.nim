@@ -464,8 +464,8 @@ iterator configFiles(N: NimConfParser, cfg: RelativeFile): AbsoluteFile =
   if optSkipUserConfigFile notin N.config.globalOptions:
     yield getUserConfigPath(cfg)
 
-  let pd = if N.config.projectPath.isEmpty: AbsoluteDir(getCurrentDir())
-           else:                            N.config.projectPath
+  let pd = if N.config.projectDir.isEmpty: AbsoluteDir(getCurrentDir())
+           else:                            N.config.projectDir
 
   if optSkipParentConfigFiles notin N.config.globalOptions:
     for dir in parentDirs(pd.string, fromRoot=true, inclusive=false):

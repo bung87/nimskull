@@ -220,9 +220,9 @@ proc processCmdLineAndProjectPath*(self: NimProg, conf: ConfigRef, cmd: openArra
     handleStdinInput(conf)
   of pimFile:
     if conf.projectName != "":
-      setFromProjectName(conf, conf.projectName)
+      setProjectFile(conf, conf.projectName)
     else:
-      conf.projectPath = AbsoluteDir canonicalizePath(conf, AbsoluteFile getCurrentDir())
+      conf.projectDir = AbsoluteDir canonicalizePath(conf, AbsoluteFile getCurrentDir())
 
 proc loadConfigs*(
   cfg: RelativeFile, cache: IdentCache,

@@ -729,7 +729,7 @@ func testCompileOption*(conf: ConfigRef; switch: string): CompileOptCheckResult 
 
 proc handleStdinOrCmdInput(conf: ConfigRef) =
   conf.projectFull = conf.projectName.AbsoluteFile
-  conf.projectPath = AbsoluteDir getCurrentDir()
+  conf.projectDir = AbsoluteDir getCurrentDir()
   if conf.outDir.isEmpty:
     conf.outDir = getNimcacheDir(conf)
 
@@ -887,7 +887,7 @@ proc processSwitch*(switch, arg: string, pass: TCmdLinePass,
           elif notRelativeToProj:
             getCurrentDir() / path
           else:
-            conf.projectPath.string / path
+            conf.projectDir.string / path
       info = newLineInfo(conf.commandLineSrcIdx, 0, -1)
       # xxx: we hack commandLineSrcIdx at callers like `nimconf` to get different
       #      info here; rework so it's all handled via returns and remove the

@@ -1012,7 +1012,7 @@ proc uniqueModuleName*(conf: ConfigRef; fid: FileIndex): string =
       if path.string.startsWith(conf.libpath.string):
         relativeTo(path, conf.libpath).string
       else:
-        relativeTo(path, conf.projectPath).string
+        relativeTo(path, conf.projectDir).string
     trunc = if rel.endsWith(".nim"): rel.len - len(".nim") else: rel.len
   result = newStringOfCap(trunc)
   for i in 0..<trunc:

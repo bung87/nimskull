@@ -588,7 +588,7 @@ proc getCompileCFileCmd*(conf: ConfigRef; cfile: Cfile,
     options.add cfile.customArgs
 
   # compute include paths
-  let includeDirs = @[conf.libpath, conf.projectPath] & conf.cIncludes
+  let includeDirs = @[conf.libpath, conf.projectDir] & conf.cIncludes
   let includeCmd = join(includeDirs.mapIt(CC[c].includeCmd & it.quoteShell))
 
   let cf =

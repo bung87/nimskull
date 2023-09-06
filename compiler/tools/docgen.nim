@@ -192,7 +192,7 @@ proc presentationPath*(conf: ConfigRef, file: AbsoluteFile): RelativeFile =
   ## returns a relative file that will be appended to outDir
   let file2 = $file
   template bail() =
-    result = relativeTo(file, conf.projectPath)
+    result = relativeTo(file, conf.projectDir)
   proc nimbleDir(): AbsoluteDir =
     getPkgDesc(conf, file2).pkgRoot
   case conf.docRoot:
@@ -539,7 +539,7 @@ proc runAllExamples(d: PDoc) =
     let cmd = "$nim $backend -r --lib:$libpath --warning:UnusedImport:off --path:$path --nimcache:$nimcache $rdoccmd $docCmd $file" % [
       "nim", quoteShell(os.getAppFilename()),
       "backend", $d.conf.backend,
-      "path", quoteShell(d.conf.projectPath),
+      "path", quoteShell(d.conf.projectDir),
       "libpath", quoteShell(d.conf.libpath),
       "nimcache", quoteShell(outputDir),
       "file", quoteShell(outp),

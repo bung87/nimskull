@@ -52,7 +52,7 @@ proc withPackageName*(conf: ConfigRef; path: AbsoluteFile): AbsoluteFile =
     ## in different directory get different name and they can be
     ## placed in a directory.
     ## foo-#head/../bar becomes @foo-@hhead@s..@sbar
-    result = "@m" & relativeTo(path, conf.projectPath).string.multiReplace(
+    result = "@m" & relativeTo(path, conf.projectDir).string.multiReplace(
       {$os.DirSep: "@s", $os.AltSep: "@s", "#": "@h", "@": "@@", ":": "@c"})
 
   let x = getPackageName(conf, path.string)
@@ -101,7 +101,7 @@ proc getPkgDesc*(conf: ConfigRef, modulePath: string): PkgDesc =
               pkgRootName: pkgFileName, pkgRoot: AbsoluteDir pkgFileRoot)
     else:
       PkgDesc(pkgKnown: false,
-              pkgRootName: "unknown",   pkgRoot: conf.projectPath)
+              pkgRootName: "unknown",   pkgRoot: conf.projectDir)
 
   result.pkgSubpath =
     block:

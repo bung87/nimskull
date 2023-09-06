@@ -512,7 +512,7 @@ proc mainCommand*(graph: ModuleGraph) =
     # doc like commands can generate a lot of files (especially with --project)
     # so by default should not end up in $PWD nor in $projectPath.
     var ret = if optUseNimcache in conf.globalOptions: getNimcacheDir(conf)
-              else: conf.projectPath
+              else: conf.projectDir
     doAssert ret.string.isAbsolute # `AbsoluteDir` is not a real guarantee
     if conf.cmd in cmdDocLike + {cmdRst2html, cmdRst2tex}: ret = ret / htmldocsDir
     conf.outDir = ret
@@ -591,7 +591,7 @@ proc mainCommand*(graph: ModuleGraph) =
     state.nimExe      = getAppFilename()
     state.prefixdir   = conf.getPrefixDir().string
     state.libpath     = conf.libpath.string
-    state.projectPath = conf.projectFull.string
+    state.projectPath  = conf.projectFull.string
     state.outdir      = conf.outDir.string
     state.`out`       = conf.outFile.string
     state.nimcache    = getNimcacheDir(conf).string

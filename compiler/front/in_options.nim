@@ -285,7 +285,7 @@ type
     # simply 'what was supplied as an argument'. `projectFull` is the
     # closest one to that, but it still goes through the process of
     # canonicialization in `options.setFromProjectName`
-    projectPath*: AbsoluteDir       ## holds a path like
+    projectDir*: AbsoluteDir       ## holds a path like
     projectName*: string            ## holds a name like 'nim'
     ## /home/alice/projects/nim/compiler/
     projectFull*: AbsoluteFile      ## projectPath/projectName

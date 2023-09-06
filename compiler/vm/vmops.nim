@@ -186,7 +186,7 @@ when defined(nimHasInvariant):
     of SingleValueSetting.outDir: result = conf.outDir.string
     of SingleValueSetting.nimcacheDir: result = conf.getNimcacheDir().string
     of SingleValueSetting.projectName: result = conf.projectName
-    of SingleValueSetting.projectPath: result = conf.projectPath.string
+    of SingleValueSetting.projectDir: result = conf.projectDir.string
     of SingleValueSetting.projectFull: result = conf.projectFull.string
     of SingleValueSetting.command: result = conf.command
     of SingleValueSetting.commandLine: result = conf.commandLine
@@ -411,7 +411,7 @@ iterator macroOps*(): Override =
   # XXX: doesn't really have to do anything with macros, but it's in
   #      `stdlib.macros`, so...
   proc getProjectPathWrapper(a: VmArgs) {.nimcall.} =
-    setResult a, a.config.projectPath.string
+    setResult a, a.config.projectDir.string
   macrosop getProjectPath
 
   override "stdlib.macros.symBodyHash", proc (a: VmArgs) {.nimcall.} =

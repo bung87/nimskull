@@ -21,7 +21,7 @@ type
     outDir,           ## the output directory
     nimcacheDir,      ## the location of the 'nimcache' directory
     projectName,      ## the project's name that is being compiled
-    projectPath,      ## experimental: some path to the project that is being compiled
+    projectDir,      ## experimental: some path to the project that is being compiled
     projectFull,      ## the full path to the project that is being compiled
     command,          ## experimental: the command (e.g. 'c', 'doc') passed to
                       ## the Nim compiler
