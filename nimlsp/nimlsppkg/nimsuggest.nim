@@ -8,7 +8,11 @@ import
   compiler/ast/[
     idents,
     lineinfos,
-    ast
+    ast,
+    syntaxes,
+    parser,
+    ast_parsed_types,
+    ast_types
   ],
   compiler/modules/[
     modules,
@@ -141,6 +145,32 @@ proc symFromInfo(graph: ModuleGraph; trackPos: TLineInfo; moduleIdx: FileIndex):
   if m != nil and m.ast != nil:
     result = findNode(m.ast, trackPos)
 
+proc parsedNodeToSugget(n: ParsedNode; moduleName: string): Suggest =
+  if n.kind in {pnkError, pnkEmpty}: return
+  new(result)
+  let token = getToken(n)
+  if token.ident != nil:
+    result.name = addr token.ident.s
+    result.qualifiedPath = @[moduleName, token.ident.s]
+  result.line = token.line.int
+  result.column = token.col.int
+  var symkind: TSymKind = skUnknown
+  case n.kind
+    of pnkConstSection: symkind = skConst
+    of pnkLetSection: symkind = skLet
+    of pnkVarSection: symkind = skVar
+    of pnkProcDef: symkind = skProc
+    of pnkFuncDef: symkind = skFunc
+    of pnkMethodDef: symkind = skMethod
+    of pnkConverterDef: symkind = skConverter
+    of pnkIteratorDef: symkind = skIterator
+    of pnkMacroDef: symkind = skMacro
+    of pnkTemplateDef: symkind = skTemplate
+    of pnkTypeDef: symkind = skType
+    else: discard
+  result.symkind = byte symkind
+
+  
 proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
              graph: ModuleGraph) =
   let conf = graph.config
@@ -160,6 +190,23 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
   if conf.ideCmd in {ideUse, ideDus} and
       dirtyfile.isEmpty:
     needCompile = false
+  if conf.ideCmd == ideOutline:
+    needCompile = false
+    var parser: Parser
+    var sug: Suggest
+    var parsedNode: ParsedNode
+    let m = splitFile(file.string)
+    if setupParser(parser, dirtyIdx, graph.cache, conf):
+      while true:
+        parsedNode = parser.parseTopLevelStmt()
+        if parsedNode.kind == pnkEmpty:
+          break
+        sug = parsedNodeToSugget(parsedNode, m.name)
+        if sug != nil:
+          sug.filepath = file.string
+          conf.suggestionResultHook(sug)
+      closeParser(parser)
+
   if needCompile:
     if not isKnownFile:
       moduleIdx = dirtyIdx
