@@ -156,23 +156,25 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
   conf.m.trackPosAttached = false
   conf.errorCounter = 0
   var moduleIdx: FileIndex
-  if not isKnownFile:
-    moduleIdx = dirtyIdx
-    stderr.writeLine "compile module:" & toFullPathConsiderDirty(conf, moduleIdx).string
-    graph.compileProject(dirtyIdx)
+  var needCompile = true
   if conf.ideCmd in {ideUse, ideDus} and
       dirtyfile.isEmpty:
-    discard "no need to recompile anything"
-  else:
-    moduleIdx = graph.parentModule(dirtyIdx)
-    stderr.writeLine "compile module:" & toFullPathConsiderDirty(conf, moduleIdx).string
-    graph.markDirty dirtyIdx
-    graph.markClientsDirty dirtyIdx
-    # partially recompiling the project means that that VM and JIT state
-    # would become stale, which we prevent by discarding all of it:
-    graph.vm = nil
-    if conf.ideCmd != ideMod:
-      graph.compileProject(moduleIdx)
+    needCompile = false
+  if needCompile:
+    if not isKnownFile:
+      moduleIdx = dirtyIdx
+      stderr.writeLine "compile module:" & toFullPathConsiderDirty(conf, moduleIdx).string
+      discard graph.compileModule(dirtyIdx, {})
+    else:
+      moduleIdx = graph.parentModule(dirtyIdx)
+      stderr.writeLine "compile module:" & toFullPathConsiderDirty(conf, moduleIdx).string
+      graph.markDirty dirtyIdx
+      graph.markClientsDirty dirtyIdx
+      # partially recompiling the project means that that VM and JIT state
+      # would become stale, which we prevent by discarding all of it:
+      graph.vm = nil
+      if conf.ideCmd != ideMod:
+        discard graph.compileModule(moduleIdx, {})
   if conf.ideCmd in {ideUse, ideDus}:
     let u = graph.symFromInfo(conf.m.trackPos, moduleIdx)
     if u != nil:
