@@ -145,32 +145,57 @@ proc symFromInfo(graph: ModuleGraph; trackPos: TLineInfo; moduleIdx: FileIndex):
   if m != nil and m.ast != nil:
     result = findNode(m.ast, trackPos)
 
+proc getSymNode(node: ParsedNode): ParsedNode =
+  result = node
+  if result.kind == pnkPostfix:
+    result = result[^1]
+  elif result.kind == pnkPragmaExpr:
+    result = getSymNode(result[0])
+
+proc pnkToSymKind(kind: ParsedNodeKind): TSymKind =
+  result = skUnknown
+  case kind
+  of pnkConstSection, pnkConstDef: result = skConst
+  of pnkLetSection: result = skLet
+  of pnkVarSection: result = skVar
+  of pnkProcDef: result = skProc
+  of pnkFuncDef: result = skFunc
+  of pnkMethodDef: result = skMethod
+  of pnkConverterDef: result = skConverter
+  of pnkIteratorDef: result = skIterator
+  of pnkMacroDef: result = skMacro
+  of pnkTemplateDef: result = skTemplate
+  of pnkTypeDef, pnkTypeSection: result = skType
+  else: discard
+
+proc getName(node: ParsedNode): string =
+  if node.kind == pnkIdent:
+    result = node.startToken.ident.s
+  elif node.kind == pnkAccQuoted:
+    result = "`"
+    for t in node.idents:
+      result.add t.ident.s
+    result.add "`"
+
 proc parsedNodeToSugget(n: ParsedNode; moduleName: string): Suggest =
+  const Interested = {pnkConstSection..pnkTypeDef, pnkConstDef}
   if n.kind in {pnkError, pnkEmpty}: return
+  if n.kind notin Interested: return
   new(result)
   let token = getToken(n)
-  if token.ident != nil:
-    result.name = addr token.ident.s
-    result.qualifiedPath = @[moduleName, token.ident.s]
+  var name = ""
+
+  if n.kind in {pnkProcDef..pnkTypeDef, pnkConstDef} - {pnkTypeSection}:
+    var node: ParsedNode = getSymNode(n[0])
+    if node.kind != pnkError:
+      name = getName(node)
+
+  if name != "":
+    result.qualifiedPath = @[moduleName, name]
   result.line = token.line.int
   result.column = token.col.int
-  var symkind: TSymKind = skUnknown
-  case n.kind
-    of pnkConstSection: symkind = skConst
-    of pnkLetSection: symkind = skLet
-    of pnkVarSection: symkind = skVar
-    of pnkProcDef: symkind = skProc
-    of pnkFuncDef: symkind = skFunc
-    of pnkMethodDef: symkind = skMethod
-    of pnkConverterDef: symkind = skConverter
-    of pnkIteratorDef: symkind = skIterator
-    of pnkMacroDef: symkind = skMacro
-    of pnkTemplateDef: symkind = skTemplate
-    of pnkTypeDef: symkind = skType
-    else: discard
-  result.symkind = byte symkind
+  result.symkind = byte pnkToSymKind(n.kind)
 
-  
 proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
              graph: ModuleGraph) =
   let conf = graph.config
@@ -195,26 +220,35 @@ proc executeNoHooks(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int,
     var parser: Parser
     var sug: Suggest
     var parsedNode: ParsedNode
+    var s: ParsedNode
     let m = splitFile(file.string)
+    const Sections = {pnkTypeSection, pnkConstSection, pnkLetSection, pnkVarSection}
+    template suggestIt(parsedNode: ParsedNode) =
+      sug = parsedNodeToSugget(parsedNode, m.name)
+      if sug != nil:
+        sug.filepath = file.string
+        conf.suggestionResultHook(sug)
     if setupParser(parser, dirtyIdx, graph.cache, conf):
       while true:
         parsedNode = parser.parseTopLevelStmt()
         if parsedNode.kind == pnkEmpty:
           break
-        sug = parsedNodeToSugget(parsedNode, m.name)
-        if sug != nil:
-          sug.filepath = file.string
-          conf.suggestionResultHook(sug)
+
+        if parsedNode.kind in Sections:
+          for node in parsedNode.sons:
+            suggestIt(node)
+        else:
+          suggestIt(parsedNode)
       closeParser(parser)
 
   if needCompile:
     if not isKnownFile:
       moduleIdx = dirtyIdx
-      stderr.writeLine "Compile unknown module: " & toFullPath(conf, moduleIdx).string
+      stderr.writeLine "Compile unknown module: " & toFullPath(conf, moduleIdx)
       discard graph.compileModule(moduleIdx, {})
     else:
       moduleIdx = graph.parentModule(dirtyIdx)
-      stderr.writeLine "Compile known module: " & toFullPath(conf, moduleIdx).string
+      stderr.writeLine "Compile known module: " & toFullPath(conf, moduleIdx)
       graph.markDirty dirtyIdx
       graph.markClientsDirty dirtyIdx
       # partially recompiling the project means that that VM and JIT state

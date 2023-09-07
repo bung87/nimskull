@@ -461,7 +461,7 @@ proc main(ins: Stream, outs: Stream) =
                     continue
                   resp.add create(
                     SymbolInformation,
-                    sym.name[],
+                    sym.qualifiedPath[^1],
                     nimSymToLSPKind(sym.symKind).int,
                     some(false),
                     create(Location,
