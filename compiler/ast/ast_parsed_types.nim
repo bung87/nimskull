@@ -118,7 +118,6 @@ type
     pnkExprEqExpr
     pnkExprColonExpr
     pnkIdentDefs
-    pnkConstDef
     pnkVarTuple
     pnkPar
     pnkSqrBracket
@@ -175,6 +174,7 @@ type
     pnkExportStmt
     pnkExportExceptStmt
     pnkConstSection
+    pnkTypeSection
     pnkLetSection
     pnkVarSection
     pnkProcDef
@@ -184,7 +184,7 @@ type
     pnkIteratorDef
     pnkMacroDef
     pnkTemplateDef
-    pnkTypeSection
+    pnkConstDef
     pnkTypeDef
     pnkEnumTy
     pnkEnumFieldDef

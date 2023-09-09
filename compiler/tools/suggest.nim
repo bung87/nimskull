@@ -162,15 +162,17 @@ proc symToSuggest(g: ModuleGraph; s: PSym, isLocal: bool, section: IdeCmd, info:
   result.quality = quality
   result.isGlobal = sfGlobal in s.flags
   result.prefix = prefix
-  result.contextFits = inTypeContext == (s.kind in {skType, skGenericParam})
+  if section in {ideSug, ideCon}:
+    result.contextFits = inTypeContext == (s.kind in {skType, skGenericParam})
   result.scope = scope
   result.name = addr s.name.s
   when defined(nimsuggest):
-    result.globalUsages = s.allUsages.len
-    var c = 0
-    for u in s.allUsages:
-      if u.fileIndex == info.fileIndex: inc c
-    result.localUsages = c
+    if section in {ideSug, ideCon}:
+      result.globalUsages = s.allUsages.len
+      var c = 0
+      for u in s.allUsages:
+        if u.fileIndex == info.fileIndex: inc c
+      result.localUsages = c
   result.symkind = byte s.kind
   if optIdeTerse notin g.config.globalOptions:
     result.qualifiedPath = @[]
@@ -192,7 +194,8 @@ proc symToSuggest(g: ModuleGraph; s: PSym, isLocal: bool, section: IdeCmd, info:
     else:
       result.forth = ""
     when defined(nimsuggest) and not defined(noDocgen) and not defined(leanCompiler):
-      result.doc = extractDocComment(g, s)
+      if section in {ideCon, ideDef, ideChk}:
+        result.doc = extractDocComment(g, s)
   let infox =
     if useSuppliedInfo or section in {ideUse, ideHighlight, ideOutline}:
       info
@@ -461,8 +464,9 @@ proc inCheckpoint*(current, trackPos: TLineInfo): TCheckPointResult =
 
 proc isTracked*(current, trackPos: TLineInfo, tokenLen: int): bool =
   if current.fileIndex == trackPos.fileIndex and 
-     current.line == trackPos.line:
+      current.line == trackPos.line:
     let col = trackPos.col
+    if col >= current.col and col <= current.col + tokenLen - 1:
     if col >= current.col and col <= current.col + tokenLen - 1:
       return true
 
@@ -558,19 +562,6 @@ proc suggestSym*(g: ModuleGraph; info: TLineInfo; s: PSym; usageSym: var PSym; i
         suggestResult(conf, symToSuggest(g, s, isLocal=false, ideDef, info, 100, PrefixMatch.None, false, 0))
     elif conf.ideCmd == ideHighlight and info.fileIndex == conf.m.trackPos.fileIndex:
       suggestResult(conf, symToSuggest(g, s, isLocal=false, ideHighlight, info, 100, PrefixMatch.None, false, 0))
-    elif conf.ideCmd == ideOutline and isDecl:
-      # if a module is included then the info we have is inside the include and
-      # we need to walk up the owners until we find the outer most module,
-      # which will be the last skModule prior to an skPackage.
-      var
-        parentFileIndex = info.fileIndex # assume we're in the correct module
-        parentModule = s.owner
-      while parentModule != nil and parentModule.kind == skModule:
-        parentFileIndex = parentModule.info.fileIndex
-        parentModule = parentModule.owner
-
-      if parentFileIndex == conf.m.trackPos.fileIndex:
-        suggestResult(conf, symToSuggest(g, s, isLocal=false, ideOutline, info, 100, PrefixMatch.None, false, 0))
 
 proc safeSemExpr*(c: PContext, n: PNode): PNode =
   # use only for idetools support!
