@@ -181,7 +181,7 @@ proc processFlags(sug: Suggest; n: ParsedNode) =
     if identDeprecated or colonDeprecated:
       sug.flags.incl SuggestFlag.deprecated
 
-proc parsedNodeToSugget(n: ParsedNode; originKind: ParsedNodeKind; module: PSym): Suggest =
+proc parsedNodeToSugget(n: ParsedNode; originKind: ParsedNodeKind; module: string): Suggest =
   if n.kind in {pnkError, pnkEmpty}: return
   if n.kind notin {pnkConstSection..pnkTypeDef, pnkIdentDefs}: return
   new(result)
@@ -207,26 +207,30 @@ proc parsedNodeToSugget(n: ParsedNode; originKind: ParsedNodeKind; module: PSym)
       #       name.add ","
 
   if name != "":
-    result.qualifiedPath = @[module.name.s, name]
+    result.qualifiedPath = @[module, name]
   result.line = token.line.int
   result.column = token.col.int
   result.tokenLen = name.len
   result.symkind = byte pnkToSymKind(originKind)
 
-proc outline(graph: ModuleGraph; fileIdx: FileIndex) =
+proc outline(graph: ModuleGraph; file: FileIndex | AbsoluteFile) =
   let conf = graph.config
   var parser: Parser
   var sug: Suggest
   var parsedNode: ParsedNode
   var s: ParsedNode
-  let m = graph.getModule fileIdx
+  let moduleName = when file is FileIndex: graph.getModule(file).name.s 
+    else: splitFile(file.string).name
   const Sections = {pnkTypeSection, pnkConstSection, pnkLetSection, pnkVarSection}
   template suggestIt(parsedNode: ParsedNode; originKind: ParsedNodeKind) =
-    sug = parsedNodeToSugget(parsedNode, originKind, m)
+    sug = parsedNodeToSugget(parsedNode, originKind, moduleName)
     if sug != nil:
-      sug.filepath = toFullPath(conf, fileIdx)
+      when file is FileIndex:
+        sug.filepath = toFullPath(conf, file)
+      else:
+        sug.filepath = file.string
       conf.suggestionResultHook(sug)
-  if setupParser(parser, fileIdx, graph.cache, conf):
+  if setupParser(parser, file, graph.cache, conf):
     while true:
       parsedNode = parser.parseTopLevelStmt()
       if parsedNode.kind == pnkEmpty:

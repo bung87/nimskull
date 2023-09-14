@@ -132,29 +132,31 @@ proc evalPipe(p: var Parser, n: PNode, filename: AbsoluteFile,
   else:
     result = applyFilter(p, n, filename, result)
 
-proc openParser*(p: var Parser, fileIdx: FileIndex, inputstream: PLLStream;
+proc openParser*(p: var Parser, file: FileIndex | AbsoluteFile, inputstream: PLLStream;
                   cache: IdentCache; config: ConfigRef) =
   assert config != nil
-  let filename = toFullPathConsiderDirty(config, fileIdx)
+  let filename = when file is FileIndex: toFullPathConsiderDirty(config, file)
+    else: file
   var pipe = parsePipe(filename, inputstream, cache, config)
   p.lex.config = config
   let s = if pipe != nil: evalPipe(p, pipe, filename, inputstream)
           else: inputstream
-  parser.openParser(p, fileIdx, s, cache, config)
+  parser.openParser(p, file, s, cache, config)
 
-proc setupParser*(p: var Parser; fileIdx: FileIndex; cache: IdentCache;
+proc setupParser*(p: var Parser; file: FileIndex | AbsoluteFile; cache: IdentCache;
                    config: ConfigRef): bool =
-  let filename = toFullPathConsiderDirty(config, fileIdx)
+  let filename = when file is FileIndex: toFullPathConsiderDirty(config, file)
+    else: file
   var f: File
   if not open(f, filename.string):
     config.localReport InternalReport(
       kind: rintCannotOpenFile, file: filename.string)
     return false
-  openParser(p, fileIdx, llStreamOpen(f), cache, config)
+  openParser(p, file, llStreamOpen(f), cache, config)
   result = true
 
-proc parseFile*(fileIdx: FileIndex, cache: IdentCache, config: ConfigRef): ParsedNode =
+proc parseFile*(file: FileIndex | AbsoluteFile, cache: IdentCache, config: ConfigRef): ParsedNode =
   var p: Parser
-  if setupParser(p, fileIdx, cache, config):
+  if setupParser(p, file, cache, config):
     result = parseAll(p)
     closeParser(p)
