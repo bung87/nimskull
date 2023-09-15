@@ -736,6 +736,7 @@ else:
   export Suggest
   export IdeCmd
   export AbsoluteFile
+  export `$`
   type NimSuggest* = ref object
     graph: ModuleGraph
     idle: int
@@ -759,8 +760,10 @@ else:
 
       conf.setErrorMaxHighMaybe
       # do not print errors, but log them
-      conf.writelnHook = myLog
-      conf.structuredErrorHook = nil
+      conf.writelnHook = proc(conf: ConfigRef, msg: string, flags: MsgFlags) =
+        discard
+      conf.writeHook = proc(conf: ConfigRef, s: string, flags: MsgFlags) = discard
+      # conf.structuredErrorHook = nil
 
       # compile the project before showing any input so that we already
       # can answer questions right away:
@@ -786,10 +789,10 @@ else:
     conf.astDiagToLegacyReport = cli_reporter.legacyReportBridge
     self.initDefinesProg(conf, "nimsuggest")
 
-    self.processCmdLineAndProjectPath(conf, argv)
+    self.processCmdLineAndProjectPath(conf, [])
 
-    if gMode != mstdin:
-      conf.writelnHook = proc (msg: string) = discard
+    # if gMode != mstdin:
+    #   conf.writelnHook = proc (msg: string) = discard
     # Find Nim's prefix dir.
     if nimPath == "":
       let binaryPath = findExe("nim")
@@ -806,7 +809,7 @@ else:
     myLog(conf, "START " & conf.projectFull.string)
 
     var graph = newModuleGraph(cache, conf)
-    if self.loadConfigsAndProcessCmdLine(cache, conf, graph):
+    if self.loadConfigsAndProcessCmdLine(cache, conf, graph,[]):
       mockCommand(graph)
     if gLogging:
       for it in conf.searchPaths:
@@ -814,31 +817,34 @@ else:
 
     retval.doStopCompile = proc (): bool = false
     return NimSuggest(graph: retval, idle: 0, cachedMsgs: @[])
-
+  proc defaultStructuredReportHook(conf: ConfigRef, report: Report): TErrorHandling =
+    discard
   proc runCmd*(nimsuggest: NimSuggest, cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int): seq[Suggest] =
     var retval: seq[Suggest] = @[]
     let conf = nimsuggest.graph.config
     conf.ideCmd = cmd
-    conf.writelnHook = proc (line: string) =
-      retval.add(Suggest(section: ideMsg, doc: line))
+    # conf.writelnHook = proc (line: string) =
+    #   retval.add(Suggest(section: ideMsg, doc: line))
     conf.suggestionResultHook = proc (s: Suggest) =
       retval.add(s)
-    conf.writelnHook = proc (s: string) =
-      stderr.write s & "\n"
+    # conf.writelnHook = proc (s: string) =
+    #   stderr.write s & "\n"
     if conf.ideCmd == ideKnown:
       retval.add(Suggest(section: ideKnown, quality: ord(fileInfoKnown(conf, file))))
     elif conf.ideCmd == ideProject:
       retval.add(Suggest(section: ideProject, filePath: string conf.projectFull))
     else:
+      # if conf.ideCmd == ideChk:
+      #   for cm in nimsuggest.cachedMsgs: errorHook(conf, cm.info, cm.msg, cm.sev)
       if conf.ideCmd == ideChk:
-        for cm in nimsuggest.cachedMsgs: errorHook(conf, cm.info, cm.msg, cm.sev)
-      if conf.ideCmd == ideChk:
-        conf.structuredErrorHook = proc (conf: ConfigRef; info: TLineInfo; msg: string; sev: Severity) =
-          retval.add(Suggest(section: ideChk, filePath: toFullPath(conf, info),
-            line: toLinenumber(info), column: toColumn(info), doc: msg,
-            forth: $sev))
+        discard
+        # conf.structuredErrorHook = proc (conf: ConfigRef; info: TLineInfo; msg: string; sev: Severity) =
+        #   retval.add(Suggest(section: ideChk, filePath: toFullPath(conf, info),
+        #     line: toLinenumber(info), column: toColumn(info), doc: msg,
+        #     forth: $sev))
 
       else:
-        conf.structuredErrorHook = nil
+        conf.structuredReportHook = defaultStructuredReportHook
+        # conf.structuredErrorHook = nil
       executeNoHooks(conf.ideCmd, file, dirtyfile, line, col, nimsuggest.graph)
     return retval
