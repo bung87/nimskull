@@ -809,6 +809,9 @@ else:
     myLog(conf, "START " & conf.projectFull.string)
 
     var graph = newModuleGraph(cache, conf)
+    graph.onMarkUsed = proc (g: ModuleGraph; info: TLineInfo; s: PSym; usageSym: var PSym; isDecl: bool) =
+      suggestSym(g, info, s, usageSym, isDecl)
+    graph.onSymImport = graph.onMarkUsed
     if self.loadConfigsAndProcessCmdLine(cache, conf, graph,[]):
       mockCommand(graph)
     if gLogging:
