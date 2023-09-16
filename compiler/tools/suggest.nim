@@ -194,11 +194,7 @@ proc symToSuggest(g: ModuleGraph; s: PSym, isLocal: bool, section: IdeCmd, info:
     else:
       result.forth = ""
     when defined(nimsuggest) and not defined(noDocgen) and not defined(leanCompiler):
-<<<<<<< HEAD
       if section in {ideSug, ideCon, ideDef, ideChk}:
-=======
-      if section in {ideCon, ideDef, ideChk}:
->>>>>>> 19a04042ad (tool: LSP support)
         result.doc = extractDocComment(g, s)
   let infox =
     if useSuppliedInfo or section in {ideUse, ideHighlight, ideOutline}:
@@ -468,7 +464,7 @@ proc inCheckpoint*(current, trackPos: TLineInfo): TCheckPointResult =
 
 proc isTracked*(current, trackPos: TLineInfo, tokenLen: int): bool =
   if current.fileIndex == trackPos.fileIndex and 
-      current.line == trackPos.line:
+     current.line == trackPos.line:
     let col = trackPos.col
     if col >= current.col and col <= current.col + tokenLen - 1:
       return true
