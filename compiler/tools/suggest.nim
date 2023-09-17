@@ -489,7 +489,7 @@ proc executeCmd*(cmd: IdeCmd, file, dirtyfile: AbsoluteFile, line, col: int;
 
   if dirtyfile.isEmpty: msgs.setDirtyFile(conf, dirtyIdx, AbsoluteFile"")
   else: msgs.setDirtyFile(conf, dirtyIdx, dirtyfile)
-
+  if cmd == ideOutline: return
   conf.m.trackPos = newLineInfo(dirtyIdx, line, col)
   conf.m.trackPosAttached = false
   conf.errorCounter = 0
