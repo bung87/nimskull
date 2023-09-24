@@ -112,7 +112,7 @@ proc initMsgConfig*(): MsgConfig =
   result.lastError = unknownLineInfo
   result.filenameToIndexTbl = initTable[string, FileIndex]()
   result.fileInfos = @[]
-  result.errorOutputs = {eStdOut, eStdErr}
+  result.errorOutputs = {eStdErr}
   result.filenameToIndexTbl["???"] = FileIndex(-1)
   result.rawPathToIndexTbl = initTable[string, FileIndex]()
 

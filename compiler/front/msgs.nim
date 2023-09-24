@@ -253,11 +253,10 @@ proc msgWrite*(conf: ConfigRef; s: string, flags: MsgFlags = {}) =
       conf.lastMsgWasDot.excl stdOrrKind
 
   if optStdout in conf.globalOptions or msgStdout in flags:
-    if eStdOut in conf.m.errorOutputs:
-      newLineIfRequired(stdout)
-      write(stdout, s)
-      write(stdout, sep)
-      flushFile(stdout)
+    newLineIfRequired(stdout)
+    write(stdout, s)
+    write(stdout, sep)
+    flushFile(stdout)
   else:
     if eStdErr in conf.m.errorOutputs:
       newLineIfRequired(stderr)
