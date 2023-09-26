@@ -524,8 +524,8 @@ proc initContext(c: var TContext) =
   c.spacing = 0
   c.flags = {}
 
-proc gsub(g: var TSrcGen, n: PNode, c: TContext, fromStmtList = false)
-proc gsub(g: var TSrcGen, n: PNode, fromStmtList = false) =
+func gsub(g: var TSrcGen, n: PNode, c: TContext, fromStmtList = false)
+func gsub(g: var TSrcGen, n: PNode, fromStmtList = false) =
   var c: TContext
   initContext(c)
   gsub(g, n, c, fromStmtList = fromStmtList)
@@ -600,7 +600,7 @@ proc gsemicolon(g: var TSrcGen, n: PNode, start: int = 0, theEnd: int = - 1) =
   gcommaAux(g, n, ind, start, theEnd, tkSemiColon)
 
 proc gsons(g: var TSrcGen, n: PNode, c: TContext, start: int = 0,
-           theEnd: int = - 1) =
+           theEnd: int = - 1) {.gcsafe.} =
   for i in start..n.len + theEnd: gsub(g, n[i], c)
 
 proc gsection(g: var TSrcGen, n: PNode, c: TContext, kind: TokType,
@@ -624,7 +624,7 @@ proc longMode(g: TSrcGen; n: PNode, start: int = 0, theEnd: int = - 1): bool =
         result = true
         break
 
-proc gstmts(g: var TSrcGen, n: PNode, c: TContext, doIndent=true) =
+proc gstmts(g: var TSrcGen, n: PNode, c: TContext, doIndent=true) {.gcsafe.} =
   if n.kind == nkEmpty: return
   if n.kind in {nkStmtList, nkStmtListExpr, nkStmtListType}:
     if doIndent: indentNL(g)
@@ -783,7 +783,7 @@ proc gproc(g: var TSrcGen, n: PNode) =
       gcoms(g)
       dedent(g)
 
-proc gTypeClassTy(g: var TSrcGen, n: PNode) =
+proc gTypeClassTy(g: var TSrcGen, n: PNode) {.gcsafe.} =
   var c: TContext
   initContext(c)
   putWithSpace(g, tkConcept, "concept")
@@ -884,7 +884,7 @@ proc doParamsAux(g: var TSrcGen, params: PNode) =
     putWithSpace(g, tkOpr, "->")
     gsub(g, params[0])
 
-proc gsub(g: var TSrcGen; n: PNode; i: int) =
+func gsub(g: var TSrcGen; n: PNode; i: int) =
   if i < n.len:
     gsub(g, n[i])
   else:
@@ -956,7 +956,7 @@ proc isCustomLit(n: PNode): bool =
     let ident = n[1].getPIdent
     result = ident != nil and ident.s.startsWith('\'')
 
-proc gsub(g: var TSrcGen, n: PNode, c: TContext, fromStmtList = false) =
+func gsub(g: var TSrcGen, n: PNode, c: TContext, fromStmtList = false) =
   if isNil(n): return
   var
     a: TContext

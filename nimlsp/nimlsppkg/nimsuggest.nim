@@ -182,7 +182,7 @@ proc runCmd*(nimsuggest: NimSuggest, cmd: IdeCmd, file,
         retval.add(reportToSuggest(conf, info, report))
 
     if conf.ideCmd == ideChk:
-      conf.structuredReportHook = proc (conf: ConfigRef, report: Report): TErrorHandling =
+      conf.structuredReportHook = proc (conf: ConfigRef, report: Report): TErrorHandling {.gcsafe.} =
         result = doNothing
         case report.category
         of repParser, repLexer, repSem, repVM:

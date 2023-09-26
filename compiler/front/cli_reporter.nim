@@ -411,7 +411,7 @@ proc presentSpellingCandidates*(
 
     result.addDeclaredLoc(conf, candidate.sym)
 
-proc presentDiagnostics(
+func presentDiagnostics(
   conf: ConfigRef, d: SemDiagnostics, startWithNewLine: bool): string
 
 const defaultRenderFlags: set[TRenderFlag] = {
@@ -2382,7 +2382,7 @@ proc reportShort*(conf: ConfigRef, r: ParserReport): string =
   assertKind r
   reportBody(conf, r) & suffixShort(conf, r)
 
-proc presentDiagnostics(conf: ConfigRef, d: SemDiagnostics, startWithNewLine: bool): string =
+func presentDiagnostics(conf: ConfigRef, d: SemDiagnostics, startWithNewLine: bool): string =
   assert d.diags.len == 0, "empty until SemReport is removed, see sigmatch"
   if d.tempDiagFailCount > 0:
     if startWithNewLine:
@@ -3990,7 +3990,7 @@ proc legacyReportBridge*(conf: ConfigRef, diag: PAstDiag): Report =
   # TODO: will use conf soon
   astDiagToLegacyReport(conf, diag)
 
-proc reportHook*(conf: ConfigRef, r: Report): TErrorHandling =
+proc reportHook*(conf: ConfigRef, r: Report): TErrorHandling {.gcsafe.} =
   ## Default implementation of the report hook. Dispatches into
   ## `reportBody` for report, which then calls respective (for each report
   ## category) `reportBody` overloads defined above

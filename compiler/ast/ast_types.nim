@@ -1840,10 +1840,11 @@ type Gconfig = object
 
 var gconfig {.threadvar.}: Gconfig
 
-proc comment*(n: PNode): string =
+func comment*(n: PNode): string =
   if nfHasComment in n.flags and not gconfig.useIc:
     # IC doesn't track comments, see `packed_ast`, so this could fail
-    result = gconfig.comments[n.id]
+    {.cast(noSideEffect).}:
+      result = gconfig.comments[n.id]
 
 proc `comment=`*(n: PNode, a: string) =
   if a.len > 0:

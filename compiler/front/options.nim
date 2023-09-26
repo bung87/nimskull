@@ -188,7 +188,7 @@ type
              ## argument
     pimFile  ## the main module is a file
 
-  ReportHook* = proc(conf: ConfigRef, report: Report): TErrorHandling {.closure.}
+  ReportHook* = proc(conf: ConfigRef, report: Report): TErrorHandling {.closure, gcsafe.}
 
   HackController* = object
     ## additional configuration switches to control the behavior of the
@@ -295,9 +295,9 @@ type
       conf: ConfigRef,
       output: string,
       flags: MsgFlags
-    ) {.closure.} ## All
+    ) {.closure, gcsafe.} ## All
     ## textual output from the compiler goes through this callback.
-    writeHook*: proc(conf: ConfigRef, output: string, flags: MsgFlags) {.closure.}
+    writeHook*: proc(conf: ConfigRef, output: string, flags: MsgFlags) {.closure, gcsafe.}
     structuredReportHook*: ReportHook
     astDiagToLegacyReport*: proc(conf: ConfigRef, d: PAstDiag): Report
     setMsgFormat*: proc(config: ConfigRef, fmt: MsgFormatKind) {.closure.}
