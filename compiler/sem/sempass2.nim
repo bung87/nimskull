@@ -255,8 +255,8 @@ proc initVarViaNew(a: PEffects, n: PNode) =
     # are initialized:
     initVar(a, n)
 
-proc warnAboutGcUnsafe(n: PNode; conf: ConfigRef) =
-  localReport(conf, n.info, reportAst(rsemWarnGcUnsafe, n))
+proc warnAboutGcUnsafe(n: PNode; conf: ConfigRef; sym: PSym) =
+  localReport(conf, n.info, reportAst(rsemWarnGcUnsafe, n, sym = sym))
 
 proc markGcUnsafe(a: PEffects; reason: PSym) =
   if not a.inEnforcedGcSafe:
@@ -656,8 +656,8 @@ proc propagateEffects(tracked: PEffects, n: PNode, s: PSym) =
   mergeTags(tracked, tagSpec, n)
 
   if notGcSafe(s.typ) and sfImportc notin s.flags:
-    warnAboutGcUnsafe(n, tracked.config)
     markGcUnsafe(tracked, s)
+    warnAboutGcUnsafe(n, tracked.config, tracked.owner)
 
   if tfNoSideEffect notin s.typ.flags:
     markSideEffect(tracked, s, n.info)
@@ -777,16 +777,17 @@ proc trackOperandForIndirectCall(tracked: PEffects, n: PNode, formals: PType; ar
         assumeTheWorst(tracked, n, op)
       # assume GcUnsafe unless in its type; 'forward' does not matter:
       if notGcSafe(op) and not isOwnedProcVar(tracked, a):
-        warnAboutGcUnsafe(n, tracked.config)
         markGcUnsafe(tracked, a)
+        warnAboutGcUnsafe(n, tracked.config, tracked.owner)
+        
       elif tfNoSideEffect notin op.flags and not isOwnedProcVar(tracked, a):
         markSideEffect(tracked, a, n.info)
     else:
       mergeRaises(tracked, effectList[exceptionEffects], n)
       mergeTags(tracked, effectList[tagEffects], n)
       if notGcSafe(op):
-        warnAboutGcUnsafe(n, tracked.config)
         markGcUnsafe(tracked, a)
+        warnAboutGcUnsafe(n, tracked.config, tracked.owner)
 
       elif tfNoSideEffect notin op.flags:
         markSideEffect(tracked, a, n.info)
@@ -928,8 +929,8 @@ proc trackCall(tracked: PEffects; n: PNode) =
     if notGcSafe(op) and not importedFromC(a):
       # and it's not a recursive call:
       if not (a.kind == nkSym and a.sym == tracked.owner):
-        warnAboutGcUnsafe(n, tracked.config)
         markGcUnsafe(tracked, a)
+        warnAboutGcUnsafe(n, tracked.config, tracked.owner)
 
     if tfNoSideEffect notin op.flags and not importedFromC(a):
       # and it's not a recursive call:

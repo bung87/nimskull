@@ -1308,6 +1308,8 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
 
     of rsemWarnGcUnsafe:
       result = "not GC-safe: '$1'" % r.ast.render
+      if r.sym != nil and r.sym.gcUnsafetyReason != nil:
+        result.add "\nOriginally from '$1' $2" % [r.sym.gcUnsafetyReason.name.s, conf $ r.sym.gcUnsafetyReason.info]
 
     of rsemExceptionAlreadyHandled:
       result = "exception already handled"

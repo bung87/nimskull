@@ -268,18 +268,18 @@ proc msgWrite*(conf: ConfigRef; s: string, flags: MsgFlags = {}) =
       when defined(windows):
         flushFile(stderr)
 
-proc quit(conf: ConfigRef; withTrace: bool) {.gcsafe.} =
+proc quit(conf: ConfigRef; withTrace: bool)=
   if conf.isDefined("nimDebug"):
     quitOrRaise(conf)
   elif defined(debug) or withTrace or conf.hasHint(rintStackTrace):
-    {.gcsafe.}:
-      if stackTraceAvailable():
-        discard conf.report(InternalReport(
-          kind: rintStackTrace,
-          trace: getStackTraceEntries()))
-      else:
-        discard conf.report(InternalReport(
-          kind: rintMissingStackTrace))
+    # {.gcsafe.}:
+    if stackTraceAvailable():
+      discard conf.report(InternalReport(
+        kind: rintStackTrace,
+        trace: getStackTraceEntries()))
+    else:
+      discard conf.report(InternalReport(
+        kind: rintMissingStackTrace))
   quit 1
 
 proc errorActions(
