@@ -1774,8 +1774,8 @@ proc builtinFieldAccess(c: PContext, n: PNode, flags: TExprFlags): PNode =
   # here at all!
   when defined(nimsuggest):
     if c.config.cmd == cmdIdeTools:
-      suggestExpr(c, n)
-      if c.config.m.trackPos == n[1].info: suggestExprNoCheck(c, n)
+      suggestExprIfTracked(c, n)
+      if c.config.m.trackPos == n[1].info: suggestExpr(c, n)
 
   let s = qualifiedLookUp(c, n, {checkAmbiguity, checkUndeclared, checkModule})
   if s.isError:
@@ -3549,7 +3549,7 @@ proc semExpr(c: PContext, n: PNode, flags: TExprFlags = {}): PNode =
   addInNimDebugUtils(c.config, "semExpr", n, result, flags)
 
   result = n
-  if c.config.cmd == cmdIdeTools: suggestExpr(c, n)
+  if c.config.cmd == cmdIdeTools: suggestExprIfTracked(c, n)
   if nfSem in n.flags: return
   case n.kind
   of nkIdent, nkAccQuoted:

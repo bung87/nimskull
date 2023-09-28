@@ -242,6 +242,8 @@ proc suggestResult(conf: ConfigRef; s: Suggest) =
     conf.suggestionResultHook(s)
 
 proc produceOutput(a: var Suggestions; conf: ConfigRef) =
+  ## call `suggestionResultHook` with each suggestion, if `ideCmd` is `ideSug`
+  ## or `ideCon` sorting suggestions first.
   if conf.ideCmd in {ideSug, ideCon}:
     a.sort cmpSuggestions
   when defined(debug):
@@ -554,9 +556,11 @@ proc suggestSym*(g: ModuleGraph; info: TLineInfo; s: PSym; usageSym: var PSym; i
       if parentFileIndex == conf.m.trackPos.fileIndex:
         suggestResult(conf, symToSuggest(g, s, isLocal=false, ideOutline, info, 100, PrefixMatch.None, false, 0))
 
-proc safeSemExpr*(c: PContext, n: PNode): PNode =
+proc trySemExpr*(c: PContext, n: PNode): PNode =
+  ## call `semExpr` return the sem passed `PNode`,
+  ## when encounter `ERecoverableError` failback to empty `PNode`
   # use only for idetools support!
-  addInNimDebugUtils(c.config, "safeSemExpr", n, result)
+  addInNimDebugUtils(c.config, "trySemExpr", n, result)
   try:
     result = c.semExpr(c, n)
   except ERecoverableError:
@@ -564,7 +568,7 @@ proc safeSemExpr*(c: PContext, n: PNode): PNode =
 
 proc sugExpr(c: PContext, n: PNode, outputs: var Suggestions) =
   if n.kind == nkDotExpr:
-    var obj = safeSemExpr(c, n[0])
+    var obj = trySemExpr(c, n[0])
     # it can happen that errnously we have collected the fieldname
     # of the next line, so we check the 'field' is actually on the same
     # line as the object to prevent this from happening:
@@ -584,7 +588,8 @@ proc sugExpr(c: PContext, n: PNode, outputs: var Suggestions) =
     let prefix = if c.config.m.trackPosAttached: nil else: n
     suggestEverything(c, n, prefix, outputs)
 
-proc suggestExprNoCheck*(c: PContext, n: PNode) =
+proc suggestExpr*(c: PContext, n: PNode) =
+  ## suggest expression when `ideCmd in {ideSug, ideCon, ideDef}`
   # This keeps semExpr() from coming here recursively:
   if c.compilesContextId > 0: return
   inc(c.compilesContextId)
@@ -594,17 +599,17 @@ proc suggestExprNoCheck*(c: PContext, n: PNode) =
   elif c.config.ideCmd == ideCon:
     if n.kind in nkCallKinds:
       var a = copyNode(n)
-      var x = safeSemExpr(c, n[0])
+      var x = trySemExpr(c, n[0])
       if x.kind == nkEmpty or x.typ == nil or x.isErrorLike: x = n[0]
       a.add x
       for i in 1..<n.len:
         # use as many typed arguments as possible:
-        var x = safeSemExpr(c, n[i])
+        var x = trySemExpr(c, n[i])
         if x.kind == nkEmpty or x.typ == nil or x.isErrorLike: break
         a.add x
       suggestCall(c, a, outputs)
     elif n.kind in nkIdentKinds:
-      var x = safeSemExpr(c, n)
+      var x = trySemExpr(c, n)
       if x.kind == nkEmpty or x.typ == nil or x.isErrorLike: x = n
       suggestVar(c, x, outputs)
 
@@ -613,18 +618,18 @@ proc suggestExprNoCheck*(c: PContext, n: PNode) =
     produceOutput(outputs, c.config)
     suggestQuit()
 
-proc suggestExpr*(c: PContext, n: PNode) =
-  if c.config.m.trackPos == n.info: suggestExprNoCheck(c, n)
+proc suggestExprIfTracked*(c: PContext, n: PNode) =
+  if c.config.m.trackPos == n.info: suggestExpr(c, n)
 
 proc suggestDecl*(c: PContext, n: PNode; s: PSym) =
   let attached = c.config.m.trackPosAttached
   if attached: inc(c.inTypeContext)
   defer:
     if attached: dec(c.inTypeContext)
-  suggestExpr(c, n)
+  suggestExprIfTracked(c, n)
 
 proc suggestStmt*(c: PContext, n: PNode) =
-  suggestExpr(c, n)
+  suggestExprIfTracked(c, n)
 
 proc suggestEnum*(c: PContext; n: PNode; t: PType) =
   var outputs: Suggestions = @[]

@@ -178,8 +178,8 @@ template semIdeForTemplateOrGeneric(c: PContext; n: PNode;
   when defined(nimsuggest):
     if c.config.cmd == cmdIdeTools and requiresCheck:
       #if optIdeDebug in gGlobalOptions:
-      #  echo "passing to safeSemExpr: ", renderTree(n)
-      discard safeSemExpr(c, n)
+      #  echo "passing to trySemExpr: ", renderTree(n)
+      discard trySemExpr(c, n)
 
 proc fitNodePostMatch(c: PContext, formal: PType, arg: PNode): PNode =
   var
