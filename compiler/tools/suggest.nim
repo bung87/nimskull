@@ -359,6 +359,7 @@ proc typeFits(c: PContext, s: PSym, firstArg: PType): bool {.inline.} =
 
 proc suggestOperations(c: PContext, n, f: PNode, typ: PType, outputs: var Suggestions) =
   assert typ != nil
+  if n.kind == nkEmpty: return
   let info = n.info
   wholeSymTab(filterSymNoOpr(it, f, pm) and typeFits(c, it, typ), ideSug)
 
@@ -567,6 +568,7 @@ proc trySemExpr*(c: PContext, n: PNode): PNode =
     result = c.graph.emptyNode
 
 proc sugExpr(c: PContext, n: PNode, outputs: var Suggestions) =
+  ## used for `ideSug`
   if n.kind == nkDotExpr:
     var obj = trySemExpr(c, n[0])
     # it can happen that errnously we have collected the fieldname

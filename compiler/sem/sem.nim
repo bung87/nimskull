@@ -164,19 +164,21 @@ proc deltaTrace(stopProc, indent: string, entries: seq[StackTraceEntry])
     echo:
       "$1| $2 $3($4)" % [indent, $e.procname, $e.filename, $e.line]
 
-template semIdeForTemplateOrGenericCheck(conf, n, requiresCheck) =
+template semIdeForTemplateOrGenericCheck(conf, n, cursorInBody) =
+  ## check node is same line as `trackPos`, assign to `GenericCtx.cursorInBody`
   # we check quickly if the node is where the cursor is
   when defined(nimsuggest):
-    if n.info.fileIndex == conf.m.trackPos.fileIndex and n.info.line == conf.m.trackPos.line:
-      requiresCheck = true
+    if n.info.fileIndex == conf.m.trackPos.fileIndex and
+       n.info.line == conf.m.trackPos.line:
+      cursorInBody = true
 
 template semIdeForTemplateOrGeneric(c: PContext; n: PNode;
-                                    requiresCheck: bool) =
+                                    cursorInBody: bool) =
   # use only for idetools support; this is pretty slow so generics and
   # templates perform some quick check whether the cursor is actually in
   # the generic or template.
   when defined(nimsuggest):
-    if c.config.cmd == cmdIdeTools and requiresCheck:
+    if c.config.cmd == cmdIdeTools and cursorInBody:
       #if optIdeDebug in gGlobalOptions:
       #  echo "passing to trySemExpr: ", renderTree(n)
       discard trySemExpr(c, n)
