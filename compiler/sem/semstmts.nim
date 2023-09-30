@@ -1651,8 +1651,8 @@ proc semFor(c: PContext, n: PNode; flags: TExprFlags): PNode =
   elif isCallExpr and isClosureIterator(call[0].typ.skipTypes(abstractInst)):
     # first class iterator:
     result = semForVars(c, n, flags)
-  elif not isCallExpr or call[0].kind != nkSym or
-      call[0].sym.kind != skIterator:
+  elif not hasError and (not isCallExpr or call[0].kind != nkSym or
+        call[0].sym.kind != skIterator):
     if n.len == 3:
       n[^2] = implicitIterator(c, "items", n[^2])
     elif n.len == 4:
