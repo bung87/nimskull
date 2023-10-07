@@ -160,10 +160,7 @@ proc symToSuggest(g: ModuleGraph; s: PSym, isLocal: bool, section: IdeCmd, info:
   when defined(nimsuggest):
     if section in {ideSug, ideCon}:
       result.globalUsages = s.allUsages.len
-      var c = 0
-      for u in s.allUsages:
-        if u.fileIndex == info.fileIndex: inc c
-      result.localUsages = c
+      result.localUsages = s.localUsages
   result.symkind = byte s.kind
   result.qualifiedPath = @[]
   if not isLocal and s.kind != skModule:
@@ -507,6 +504,7 @@ when defined(nimsuggest):
     if s.allUsages.len > 500: return
     for infoB in s.allUsages:
       if infoB == info: return
+      if infoB.fileIndex == info.fileIndex: inc s.localUsages
     s.allUsages.add(info)
 
 when defined(nimsuggest):

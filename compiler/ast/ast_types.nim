@@ -1682,6 +1682,7 @@ type
                               ## deprecated modules.
     when defined(nimsuggest):
       allUsages*: seq[TLineInfo]
+      localUsages*: int
 
   TTypeSeq* = seq[PType]
   TLockLevel* = distinct int16
