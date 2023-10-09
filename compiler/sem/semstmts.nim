@@ -3126,7 +3126,7 @@ proc semRoutineDef(c: PContext, n: PNode): PNode =
     suggestSym(c.graph, result[namePos].info, result[namePos].sym, c.graph.usageSym)
 
 proc evalInclude(c: PContext, n: PNode): PNode =
-  proc incMod(c: PContext, n, it, includeStmtResult: PNode) {.nimcall.} =
+  proc incMod(c: PContext, n, it: PNode): PNode {.nimcall.} =
     let f = checkModuleName(c.config, it)
     if f != InvalidFileIdx:
       addIncludeFileDep(c, f)
@@ -3135,11 +3135,15 @@ proc evalInclude(c: PContext, n: PNode): PNode =
         localReport(c.config, n.info, reportStr(
           rsemRecursiveInclude, toMsgFilename(c.config, f)))
       else:
-        includeStmtResult.add:
-          semStmt(c, c.graph.includeFileCallback(c.graph, c.module, f), {})
+        let m = c.graph.includeFileCallback(c.graph, c.module, f)
+        if m == nil:
+          result = c.config.newError(n, PAstDiag(kind: adSemCannotInclude, file: toMsgFilename(c.config, f)))
+        else:
+          result = semStmt(c, m, {})
         excl(c.includedFiles, f.int)
 
   result = newNodeI(nkStmtList, n.info)
+  var hasError = false
   for it in n.items:
     if it.kind == nkInfix and it.len == 3 and it[0].ident.s != "/":
       localReport(c.config, it.info, reportAst(
@@ -3151,9 +3155,15 @@ proc evalInclude(c: PContext, n: PNode): PNode =
       imp[1] = it[1] # path
       for x in it[2]:
         imp[2] = x
-        incMod(c, n, imp, result)
+        let m = incMod(c, n, imp)
+        result.add m
+        hasError = hasError or m.kind == nkError
     else:
-      incMod(c, n, it, result)
+      let m = incMod(c, n, it)
+      result.add m
+      hasError = hasError or m.kind == nkError
+  if hasError:
+    result = c.config.wrapError(result)
 
 proc setLine(n: PNode, info: TLineInfo) =
   if n != nil:

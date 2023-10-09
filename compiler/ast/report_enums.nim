@@ -316,6 +316,7 @@ type
     rsemInvalidModulePath
     rsemInvalidModuleName
     rsemCannotImportItself
+    rsemCannotIclude
     rsemRecursiveInclude
     rsemCannotOpenFile
     rsemExportRequiresToplevel

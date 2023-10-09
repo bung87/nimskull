@@ -1665,6 +1665,9 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
     of rsemCannotImportItself:
       result = "module '$1' cannot import itself" % r.symstr
 
+    of rsemCannotIclude:
+      result = "module '$1' cannot include" % r.str
+
     of rsemCannotOpenFile:
       result = "cannot open '$1'" % r.str
 
@@ -3370,6 +3373,13 @@ func astDiagToLegacyReport(conf: ConfigRef, diag: PAstDiag): Report {.inline.} =
         reportInst: diag.instLoc.toReportLineInfo,
         kind: rsemCannotImportItself,
         sym: diag.selfModule,
+        ast: diag.wrongNode)
+  of adSemCannotInclude:
+    semRep = SemReport(
+        location: some diag.location,
+        reportInst: diag.instLoc.toReportLineInfo,
+        kind: rsemCannotIclude,
+        str: diag.file,
         ast: diag.wrongNode)
   of adSemIllegalCustomPragma:
     semRep = SemReport(

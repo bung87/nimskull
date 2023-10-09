@@ -1061,6 +1061,8 @@ type
     adSemOnlyDeclaredIdentifierFoundIsError
     # imports
     adSemCannotImportItself
+    # includes
+    adSemCannotInclude
     # pragmas
     adSemInvalidPragma
     adSemIllegalCustomPragma
@@ -1362,6 +1364,8 @@ type
       err*: PNode
     of adSemCannotImportItself:
       selfModule*: PSym
+    of adSemCannotInclude:
+      file*: string
     of adSemIllegalCustomPragma:
       customPragma*: PSym
     of adSemWrongIdent:
