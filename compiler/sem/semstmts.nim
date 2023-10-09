@@ -3127,7 +3127,7 @@ proc semRoutineDef(c: PContext, n: PNode): PNode =
 
 proc evalInclude(c: PContext, n: PNode): PNode =
   proc incMod(c: PContext, n, it: PNode): PNode {.nimcall.} =
-    let f = checkModuleName(c.config, it)
+    let f = checkModuleName(c.config, it, false)
     if f != InvalidFileIdx:
       addIncludeFileDep(c, f)
       onProcessing(c.graph, f, "include", c.module)
@@ -3141,6 +3141,8 @@ proc evalInclude(c: PContext, n: PNode): PNode =
         else:
           result = semStmt(c, m, {})
         excl(c.includedFiles, f.int)
+    else:
+      result = c.config.newError(n, PAstDiag(kind: adSemCannotInclude, file: toMsgFilename(c.config, f)))
 
   result = newNodeI(nkStmtList, n.info)
   var hasError = false
