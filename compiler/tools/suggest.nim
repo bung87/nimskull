@@ -609,7 +609,7 @@ proc suggestExprNoCheck*(c: PContext, n: PNode) =
       suggestVar(c, x, outputs)
 
   dec(c.compilesContextId)
-  if outputs.len > 0 and c.config.ideCmd in {ideSug, ideCon, ideDef}:
+  if outputs.len > 0 and c.config.ideCmd in {ideSug, ideCon}:
     produceOutput(outputs, c.config)
     suggestQuit()
 
