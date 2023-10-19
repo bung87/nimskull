@@ -1024,8 +1024,6 @@ proc makeRangeWithStaticExpr*(c: PContext, n: PNode): PType =
   let intType = getSysType(c.graph, n.info, tyInt)
   result = newTypeS(tyRange, c)
   result.sons = @[intType]
-  if n.typ != nil and n.typ.n == nil:
-    result.flags.incl tfUnresolved
   result.n = newTreeI(nkRange, n.info, newIntTypeNode(0, intType),
     makeStaticExpr(c, nMinusOne(c, n)))
 
