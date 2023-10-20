@@ -555,7 +555,6 @@ proc mainThread(graph: ModuleGraph) =
   while true:
     let (hasData, req) = requests.tryRecv()
     if hasData:
-      conf.writelnHook = wrHook
       conf.suggestionResultHook = sugResultHook
       execCmd(req, graph, cachedMsgs)
       idle = 0
@@ -565,8 +564,6 @@ proc mainThread(graph: ModuleGraph) =
     if idle == 20 and gRefresh:
       # we use some nimsuggest activity to enable a lazy recompile:
       conf.ideCmd = ideChk
-      conf.writelnHook =
-        proc (conf: ConfigRef, s: string, flags: MsgFlags = {}) = discard
       cachedMsgs.setLen 0
       conf.structuredReportHook =
           proc (conf: ConfigRef, report: Report): TErrorHandling =
@@ -595,7 +592,7 @@ proc mainCommand(graph: ModuleGraph) =
 
   conf.setErrorMaxHighMaybe # honor --errorMax even if it may not make sense here
   # do not print errors, but log them
-  conf.writelnHook = myLog
+  conf.writeHook = myLog
   conf.structuredReportHook =
     proc(conf: ConfigRef, report: Report): TErrorHandling =
       doNothing
@@ -704,7 +701,7 @@ proc handleCmdLine(cache: IdentCache; conf: ConfigRef, argv: openArray[string]) 
   self.processCmdLineAndProjectPath(conf, argv)
 
   if gMode != mstdin:
-    conf.writelnHook =
+    conf.writeHook =
       proc (conf: ConfigRef, msg: string, flags: MsgFlags) = discard
 
   # Find Nim's prefix dir.
@@ -768,7 +765,7 @@ else:
 
       conf.setErrorMaxHighMaybe
       # do not print errors, but log them
-      conf.writelnHook = myLog
+      conf.writeHook = myLog
       conf.structuredErrorHook = nil
 
       # compile the project before showing any input so that we already
@@ -798,7 +795,7 @@ else:
     self.processCmdLineAndProjectPath(conf, argv)
 
     if gMode != mstdin:
-      conf.writelnHook = proc (msg: string) = discard
+      conf.writeHook = proc (msg: string) = discard
     # Find Nim's prefix dir.
     if nimPath == "":
       let binaryPath = findExe("nim")
@@ -811,7 +808,6 @@ else:
     else:
       conf.prefixDir = AbsoluteDir nimPath
 
-    #msgs.writelnHook = proc (line: string) = log(line)
     myLog(conf, "START " & conf.projectFull.string)
 
     var graph = newModuleGraph(cache, conf)
@@ -828,12 +824,10 @@ else:
     var retval: seq[Suggest] = @[]
     let conf = nimsuggest.graph.config
     conf.ideCmd = cmd
-    conf.writelnHook = proc (line: string) =
-      retval.add(Suggest(section: ideMsg, doc: line))
     conf.suggestionResultHook = proc (s: Suggest) =
       retval.add(s)
-    conf.writelnHook = proc (s: string) =
-      stderr.write s & "\n"
+    conf.writeHook = proc (s: string) =
+      stderr.write s
     if conf.ideCmd == ideKnown:
       retval.add(Suggest(section: ideKnown, quality: ord(fileInfoKnown(conf, file))))
     elif conf.ideCmd == ideProject:
